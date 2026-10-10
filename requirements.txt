@@ -1,0 +1,10 @@
+pandas==3.0.6
+numpy==2.4.6
+scikit-learn==1.9.1
+networkx==3.6.1
+pgmpy==1.1.2
+matplotlib==3.11.2
+huggingface_hub==1.33.0
+nbformat==5.11.1
+jupyter==1.1.1
+pytest==9.1.1
