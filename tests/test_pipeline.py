@@ -1,5 +1,7 @@
+import networkx as nx
 import pytest
 
+from causal_nlp.causal_rules import equivalent_dags, pc_from_premise, relation_holds, support
 from causal_nlp.parsing import COLLIDER, CONFOUNDER, DIRECT, INDIRECT, parse_hypothesis, parse_premise
 
 COLLIDER_TEXT = ("Suppose there is a closed system of 3 variables, A, B and C. All the statistical relations "
@@ -36,3 +38,30 @@ def test_parse_hypothesis(text, expected):
 
 def test_unseen_phrasing_is_not_parsed():
     assert parse_hypothesis("A directly affects B.") is None
+
+
+def test_pc_finds_v_structure():
+    pdag = pc_from_premise(parse_premise(COLLIDER_TEXT))
+    assert pdag.directed == {("A", "C"), ("B", "C")}
+    assert not pdag.undirected
+
+
+def test_chain_is_unoriented_with_three_equivalent_dags():
+    pdag = pc_from_premise(parse_premise(CHAIN_TEXT))
+    assert pdag.undirected == {frozenset("AB"), frozenset("BC")}
+    # A->B->C, A<-B<-C, A<-B->C are equivalent; A->B<-C is not (it is a v-structure).
+    assert len(equivalent_dags(pdag)) == 3
+
+
+def test_support_values():
+    dags = equivalent_dags(pc_from_premise(parse_premise(COLLIDER_TEXT)))
+    assert support(dags, DIRECT, "A", "C") == 1.0
+    assert support(dags, COLLIDER, "A", "B") == 1.0
+    assert support(dags, CONFOUNDER, "A", "B") == 0.0
+
+
+def test_relation_semantics():
+    dag = nx.DiGraph([("Z", "X"), ("Z", "Y"), ("X", "M"), ("M", "Y")])
+    assert relation_holds(dag, CONFOUNDER, "X", "Y")
+    assert relation_holds(dag, INDIRECT, "X", "Y")
+    assert not relation_holds(dag, DIRECT, "X", "Y")
