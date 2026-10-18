@@ -2,6 +2,7 @@ import networkx as nx
 import pytest
 
 from causal_nlp.causal_rules import equivalent_dags, pc_from_premise, relation_holds, support
+from causal_nlp.graph_stage import build_dag, interventional_effect, noisy_or_network, observational_effect
 from causal_nlp.parsing import COLLIDER, CONFOUNDER, DIRECT, INDIRECT, parse_hypothesis, parse_premise
 
 COLLIDER_TEXT = ("Suppose there is a closed system of 3 variables, A, B and C. All the statistical relations "
@@ -65,3 +66,16 @@ def test_relation_semantics():
     assert relation_holds(dag, CONFOUNDER, "X", "Y")
     assert relation_holds(dag, INDIRECT, "X", "Y")
     assert not relation_holds(dag, DIRECT, "X", "Y")
+
+
+def test_build_dag_rejects_cycle_and_self_loop():
+    dag, rejected = build_dag(["A", "B", "C"], [("A", "B", 0.9), ("B", "C", 0.8), ("C", "A", 0.6), ("A", "A", 0.5)])
+    assert nx.is_directed_acyclic_graph(dag)
+    assert {(c, e) for c, e, _ in rejected} == {("C", "A"), ("A", "A")}
+
+
+def test_confounding_makes_association_bigger_than_causation():
+    bn = noisy_or_network(nx.DiGraph([("Z", "X"), ("Z", "Y"), ("X", "Y")]))
+    assert interventional_effect(bn, "X", "Y") > 0
+    assert observational_effect(bn, "X", "Y") > interventional_effect(bn, "X", "Y")
+    assert interventional_effect(bn, "Y", "X") == 0.0
