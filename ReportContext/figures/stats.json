@@ -1,0 +1,310 @@
+{
+ "splits": {
+  "train": {
+   "rows": 205734,
+   "premises": 2338,
+   "pct_valid": 21.0
+  },
+  "dev": {
+   "rows": 1076,
+   "premises": 22,
+   "pct_valid": 14.8
+  },
+  "test": {
+   "rows": 1162,
+   "premises": 21,
+   "pct_valid": 16.5
+  },
+  "refactorization": {
+   "rows": 2246,
+   "premises": 21,
+   "pct_valid": 16.2
+  },
+  "paraphrase": {
+   "rows": 2246,
+   "premises": 21,
+   "pct_valid": 16.2
+  }
+ },
+ "train_relation_mix": {
+  "direct": {
+   "n": 68583,
+   "pct_valid": 21.7
+  },
+  "indirect": {
+   "n": 68583,
+   "pct_valid": 14.3
+  },
+  "collider": {
+   "n": 34284,
+   "pct_valid": 39.3
+  },
+  "confounder": {
+   "n": 34284,
+   "pct_valid": 14.8
+  }
+ },
+ "pdag_example": {
+  "n_equivalent_dags": 3,
+  "directed": [
+   [
+    "A",
+    "E"
+   ],
+   [
+    "B",
+    "E"
+   ],
+   [
+    "D",
+    "E"
+   ]
+  ],
+  "undirected": [
+   [
+    "A",
+    "C"
+   ],
+   [
+    "C",
+    "D"
+   ]
+  ],
+  "support": {
+   "direct(A,E)": 1.0,
+   "direct(A,C)": 0.3333333333333333,
+   "direct(C,A)": 0.6666666666666666,
+   "indirect(C,E)": 1.0,
+   "confounder(C,E)": 0.6666666666666666
+  }
+ },
+ "tfidf_train_s": 41,
+ "ablation": [
+  {
+   "features": "relation + text facts",
+   "model": "Logistic Regression",
+   "dev": 0.113,
+   "test": 0.146,
+   "refactorization": 0.126
+  },
+  {
+   "features": "relation + text facts",
+   "model": "Decision Tree (depth 4)",
+   "dev": 0.223,
+   "test": 0.239,
+   "refactorization": 0.242
+  },
+  {
+   "features": "relation + text facts",
+   "model": "Random Forest",
+   "dev": 0.498,
+   "test": 0.503,
+   "refactorization": 0.488
+  },
+  {
+   "features": "+ PC graph",
+   "model": "Logistic Regression",
+   "dev": 0.325,
+   "test": 0.394,
+   "refactorization": 0.347
+  },
+  {
+   "features": "+ PC graph",
+   "model": "Decision Tree (depth 4)",
+   "dev": 0.892,
+   "test": 0.831,
+   "refactorization": 0.86
+  },
+  {
+   "features": "+ PC graph",
+   "model": "Random Forest",
+   "dev": 0.93,
+   "test": 0.927,
+   "refactorization": 0.895
+  },
+  {
+   "features": "+ support (all)",
+   "model": "Logistic Regression",
+   "dev": 0.997,
+   "test": 1.0,
+   "refactorization": 0.972
+  },
+  {
+   "features": "+ support (all)",
+   "model": "Decision Tree (depth 4)",
+   "dev": 1.0,
+   "test": 0.997,
+   "refactorization": 0.997
+  },
+  {
+   "features": "+ support (all)",
+   "model": "Random Forest",
+   "dev": 1.0,
+   "test": 1.0,
+   "refactorization": 0.999
+  }
+ ],
+ "tfidf": {
+  "dev": {
+   "precision": 0.463,
+   "recall": 0.874,
+   "f1": 0.606
+  },
+  "test": {
+   "precision": 0.501,
+   "recall": 0.943,
+   "f1": 0.655
+  },
+  "refactorization": {
+   "precision": 0.489,
+   "recall": 0.24,
+   "f1": 0.322
+  },
+  "paraphrase": {
+   "precision": 0.267,
+   "recall": 0.234,
+   "f1": 0.25
+  }
+ },
+ "final": {
+  "dev": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0
+  },
+  "test": {
+   "precision": 1.0,
+   "recall": 0.995,
+   "f1": 0.997
+  },
+  "refactorization": {
+   "precision": 1.0,
+   "recall": 0.994,
+   "f1": 0.997
+  },
+  "paraphrase": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0
+  }
+ },
+ "orig_labels_test_f1": {
+  "tfidf": 0.625,
+  "final": 0.949
+ },
+ "parse_coverage": {
+  "dev": 1.0,
+  "test": 1.0,
+  "refactorization": 1.0,
+  "paraphrase": 0.0
+ },
+ "confusion": [
+  [
+   970,
+   0
+  ],
+  [
+   1,
+   191
+  ]
+ ],
+ "per_relation": {
+  "direct": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0
+  },
+  "indirect": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0
+  },
+  "collider": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "f1": 1.0
+  },
+  "confounder": {
+   "precision": 1.0,
+   "recall": 0.933,
+   "f1": 0.966
+  }
+ },
+ "importance": {
+  "n_equivalent_dags": 0.0,
+  "rel_confounder": 0.0011,
+  "degree_x": 0.0015,
+  "n_common_parents": 0.0069,
+  "support": 0.9905
+ },
+ "edges": {
+  "gold_edges": 73,
+  "predicted_edges": 73,
+  "correct": 73,
+  "edge_precision": 1.0,
+  "edge_recall": 1.0,
+  "edge_f1": 1.0
+ },
+ "queries": {
+  "n": 242,
+  "premises": 14,
+  "acc": 0.9752,
+  "by_gold": [
+   {
+    "gold_effect": false,
+    "size": 153,
+    "mean": 1.0
+   },
+   {
+    "gold_effect": true,
+    "size": 89,
+    "mean": 0.933
+   }
+  ],
+  "misses": [
+   [
+    7,
+    "C",
+    "E"
+   ],
+   [
+    10,
+    "A",
+    "D"
+   ],
+   [
+    13,
+    "B",
+    "D"
+   ],
+   [
+    13,
+    "B",
+    "E"
+   ],
+   [
+    19,
+    "B",
+    "E"
+   ],
+   [
+    19,
+    "B",
+    "F"
+   ]
+  ]
+ },
+ "graph_example_pid": 17,
+ "do_example": {
+  "premise": 20,
+  "x": "E",
+  "y": "F",
+  "confounders": [
+   "A",
+   "D"
+  ],
+  "observational": 0.732,
+  "interventional": 0.488,
+  "fitted_ace": 0.508
+ }
+}
