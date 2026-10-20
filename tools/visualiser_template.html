@@ -1,0 +1,564 @@
+<title>Causal Pipeline Tracer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: lab-manual tracer. A data point (amber) moves along a numbered stage rail; each stage pairs
+   "what happened" (left) with the exact code that did it (right). */
+:root {
+  --bg: #eef2f5;
+  --surface: #ffffff;
+  --sunken: #f5f7fa;
+  --ink: #17212c;
+  --muted: #5b6977;
+  --line: #d3dbe3;
+  --accent: #1d5bb8;
+  --accent-soft: #e3ecf9;
+  --trace: #c96f06;
+  --trace-soft: #fdf0dc;
+  --ok: #1d7f47;
+  --ok-soft: #e1f3e8;
+  --bad: #b8322b;
+  --bad-soft: #fbe5e3;
+  --code-bg: #f7f9fb;
+  --code-comment: #6b7a89;
+  --code-string: #8a4b0b;
+  --code-keyword: #1d5bb8;
+  --note-bg: #fff8ea;
+  --note-ink: #5a3d06;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d131a; --surface: #141c25; --sunken: #111820; --ink: #e2e9f0; --muted: #93a2b2; --line: #263342;
+    --accent: #78aefc; --accent-soft: #1a2a40; --trace: #f2a742; --trace-soft: #33240f;
+    --ok: #57c886; --ok-soft: #13301f; --bad: #ff7a70; --bad-soft: #3a1714;
+    --code-bg: #10171f; --code-comment: #7d8d9d; --code-string: #f0b46b; --code-keyword: #8fbcff;
+    --note-bg: #2a2010; --note-ink: #f3d9a8; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d131a; --surface: #141c25; --sunken: #111820; --ink: #e2e9f0; --muted: #93a2b2; --line: #263342;
+  --accent: #78aefc; --accent-soft: #1a2a40; --trace: #f2a742; --trace-soft: #33240f;
+  --ok: #57c886; --ok-soft: #13301f; --bad: #ff7a70; --bad-soft: #3a1714;
+  --code-bg: #10171f; --code-comment: #7d8d9d; --code-string: #f0b46b; --code-keyword: #8fbcff;
+  --note-bg: #2a2010; --note-ink: #f3d9a8; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-block: 20px 60px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(1.7rem, 3vw, 2.3rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.35rem; font-weight: 600; }
+h3 { font-size: 1.05rem; font-weight: 600; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.muted { color: var(--muted); }
+.eyebrow { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+
+/* header */
+header.top { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: end; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+header.top p { margin: 6px 0 0; max-width: 62ch; color: var(--muted); }
+.modes { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.modes button { border: 0; background: none; padding: 7px 16px; border-radius: 999px; font-weight: 500; }
+.modes button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+/* journey picker */
+.journeys { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin: 20px 0; }
+.jcard { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 12px 13px; display: grid; gap: 6px; align-content: start; }
+.jcard:hover { border-color: var(--accent); }
+.jcard[aria-pressed="true"] { border-color: var(--trace); box-shadow: 0 0 0 2px var(--trace) inset; }
+.jcard .jt { font-family: var(--font-display); font-weight: 600; font-size: 1.02rem; }
+.jcard .jh { font-size: 0.84rem; color: var(--muted); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.pill.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.pill.trace { background: var(--trace-soft); color: var(--trace); border-color: transparent; }
+.pill.acc { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+/* claim banner */
+.claim { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; }
+.claim q { font-family: var(--font-display); font-size: 1.3rem; font-weight: 600; quotes: "“" "”"; }
+.claim .sub { color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+
+/* stage rail */
+.rail { display: flex; gap: 0; margin: 18px 0 14px; overflow-x: auto; padding-bottom: 4px; }
+.rail button { flex: 1 0 auto; min-width: 104px; border: 0; background: none; padding: 8px 6px 6px; text-align: left; border-top: 3px solid var(--line); display: grid; gap: 2px; }
+.rail button .n { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.rail button .t { font-size: 0.85rem; font-weight: 500; line-height: 1.2; }
+.rail button.done { border-top-color: var(--accent); }
+.rail button[aria-current="step"] { border-top-color: var(--trace); }
+.rail button[aria-current="step"] .t { color: var(--trace); font-weight: 600; }
+.rail button.dead { border-top-style: dashed; opacity: 0.55; }
+.stepnav { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 6px 12px; font-size: 0.88rem; }
+.btn:hover { border-color: var(--accent); }
+.btn[disabled] { opacity: 0.4; cursor: default; }
+
+/* stage body */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 1080px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.col { display: grid; gap: 14px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; min-width: 0; }
+.panel > h3 { margin-bottom: 8px; }
+.plain { background: var(--trace-soft); border-color: transparent; }
+.plain p { margin: 4px 0 0; max-width: 72ch; }
+.story { border-left: 3px solid var(--trace); }
+.story ul { margin: 6px 0 0; padding-left: 18px; }
+.story li { margin: 3px 0; }
+details.more { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+details.more summary { cursor: pointer; font-weight: 500; color: var(--accent); }
+details.more p { margin: 6px 0; max-width: 72ch; }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; }
+table.t { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+table.t th { text-align: left; font-weight: 600; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.t td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.t tr:last-child td { border-bottom: 0; }
+table.t td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.t tr.hl td { background: var(--trace-soft); }
+table.t tr.dim td { color: var(--muted); }
+.chip { font-family: var(--font-mono); font-size: 0.74rem; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.chip.none { background: var(--bad-soft); color: var(--bad); }
+
+/* raw text */
+.raw { font-family: var(--font-mono); font-size: 0.82rem; background: var(--sunken); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; }
+.raw .hyp { color: var(--trace); font-weight: 500; }
+
+/* graphs */
+.graphs { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.gbox { display: grid; gap: 4px; justify-items: center; text-align: center; }
+.gbox svg { width: 100%; max-width: 280px; height: auto; }
+.gbox.small svg { max-width: 170px; }
+.gbox .cap { font-size: 0.8rem; color: var(--muted); }
+.gbox.rejected svg { opacity: 0.45; }
+svg .node circle { fill: var(--surface); stroke: var(--ink); stroke-width: 1.6; }
+svg .node.hl circle { fill: var(--trace-soft); stroke: var(--trace); stroke-width: 2.6; }
+svg .node text { fill: var(--ink); font-family: var(--font-display); font-weight: 700; font-size: 15px; }
+svg .e { stroke: var(--ink); stroke-width: 2; fill: none; }
+svg .e.und { stroke: var(--muted); stroke-dasharray: 5 4; }
+svg .e.new { stroke: var(--trace); stroke-width: 2.6; }
+svg .e.gone { stroke: var(--bad); stroke-dasharray: 2 4; opacity: 0.6; }
+svg .e.ok { stroke: var(--ok); }
+marker#ar-ink path { fill: var(--ink); }
+marker#ar-new path { fill: var(--trace); }
+marker#ar-ok path { fill: var(--ok); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 18px; height: 0; margin-right: 6px; vertical-align: middle; border-top: 2px solid var(--ink); }
+.legend .l-und::before { border-top: 2px dashed var(--muted); }
+.legend .l-new::before { border-top: 3px solid var(--trace); }
+.legend .l-gone::before { border-top: 2px dotted var(--bad); }
+
+/* tree */
+.tree { font-size: 0.86rem; display: grid; gap: 4px; }
+.tnode { border-left: 2px solid var(--line); padding: 2px 0 2px 12px; display: grid; gap: 4px; }
+.tq { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 4px 8px; border-radius: 6px; }
+.tq .br { font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); min-width: 34px; }
+.tq .cond { font-family: var(--font-mono); }
+.tq .meta { font-size: 0.76rem; color: var(--muted); }
+.tnode.on > .tq { background: var(--trace-soft); }
+.tnode.on { border-left-color: var(--trace); }
+.tnode.on > .tq .cond { color: var(--trace); font-weight: 500; }
+.verdict { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; padding: 12px 14px; border-radius: 6px; background: var(--sunken); }
+.verdict .big { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* do-query matrix */
+.matrix { border-collapse: collapse; font-size: 0.82rem; }
+.matrix th { font-family: var(--font-display); padding: 4px 6px; color: var(--muted); font-weight: 600; }
+.matrix td { padding: 0; }
+.matrix button { width: 58px; height: 38px; border: 1px solid var(--line); background: var(--surface); font-family: var(--font-mono); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.matrix button[aria-pressed="true"] { outline: 2px solid var(--trace); outline-offset: -2px; }
+.matrix button.miss { box-shadow: inset 0 0 0 2px var(--bad); }
+.matrix td.diag { background: var(--sunken); }
+.qdetail { margin-top: 10px; display: grid; gap: 6px; font-size: 0.9rem; }
+.bar { height: 10px; border-radius: 3px; background: var(--accent); }
+.bar.obs { background: var(--muted); }
+.barrow { display: grid; grid-template-columns: 150px 1fr 60px; gap: 8px; align-items: center; font-size: 0.85rem; }
+.barrow .num { font-family: var(--font-mono); text-align: right; }
+.track { background: var(--sunken); border-radius: 3px; }
+
+/* code viewer */
+.codehead { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.codehead button { border: 1px solid var(--line); background: var(--sunken); border-radius: 6px; padding: 4px 9px; font-family: var(--font-mono); font-size: 0.76rem; }
+.codehead button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.codeinfo { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.codeinfo .where { font-family: var(--font-mono); font-size: 0.76rem; color: var(--muted); }
+.codeinfo .sum { font-size: 0.9rem; margin: 0; flex-basis: 100%; }
+.toggle { display: inline-flex; gap: 6px; align-items: center; font-size: 0.82rem; color: var(--muted); }
+.code { overflow-x: auto; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; }
+.code table { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.5; }
+.code td.ln { width: 1%; text-align: right; color: var(--muted); padding: 0 10px 0 10px; user-select: none; vertical-align: top; opacity: 0.7; }
+.code td.src { white-space: pre; padding: 0 12px 0 0; }
+.code tr.has td.src { background: color-mix(in srgb, var(--trace-soft) 55%, transparent); }
+.code tr.note td { padding: 0; }
+.code tr.note div { white-space: normal; font-family: var(--font-body); font-size: 0.8rem; line-height: 1.45; background: var(--note-bg); color: var(--note-ink); border-left: 3px solid var(--trace); margin: 1px 10px 4px 0; padding: 4px 10px; border-radius: 0 4px 4px 0; }
+.tok-c { color: var(--code-comment); font-style: italic; }
+.tok-s { color: var(--code-string); }
+.tok-k { color: var(--code-keyword); font-weight: 500; }
+
+/* notebook mode */
+.nb { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; margin-top: 20px; align-items: start; }
+@media (max-width: 900px) { .nb { grid-template-columns: minmax(0, 1fr); } .toc { display: none; } }
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 40px); overflow-y: auto; font-size: 0.84rem; display: grid; gap: 2px; }
+.toc a { color: var(--muted); text-decoration: none; padding: 3px 8px; border-radius: 4px; display: block; }
+.toc a:hover { color: var(--ink); background: var(--surface); }
+.toc a.sec { color: var(--ink); font-weight: 600; margin-top: 8px; }
+.cells { display: grid; gap: 14px; min-width: 0; }
+.mdcell { padding: 4px 2px; }
+.mdcell h2 { margin: 18px 0 6px; }
+.mdcell pre { white-space: pre-wrap; font-family: var(--font-body); font-size: 0.88rem; color: var(--muted); margin: 0; max-width: 80ch; }
+.cellhead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 8px; }
+.cellhead .cn { font-family: var(--font-mono); font-size: 0.78rem; color: var(--trace); font-weight: 500; }
+.used { font-size: 0.78rem; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .stage { animation: fade 0.18s ease-out; } @keyframes fade { from { opacity: 0.4; } to { opacity: 1; } } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="ar-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="ar-new" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="ar-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Phase 1 · Corr2Cause · neuro-symbolic pipeline</div>
+      <h1>Causal Pipeline Tracer</h1>
+      <p>Pick a real test example and follow it through all nine stages. Every number on this page was produced by the project's own code, and the code shown is copied from the real files.</p>
+    </div>
+    <div class="modes" role="group" aria-label="View">
+      <button id="mode-trace" aria-pressed="true">Trace a data point</button>
+      <button id="mode-nb" aria-pressed="false">Notebook, cell by cell</button>
+    </div>
+  </header>
+
+  <main id="trace-view">
+    <div class="journeys" id="journeys"></div>
+    <div class="claim" id="claim"></div>
+    <nav class="rail" id="rail" aria-label="Pipeline stages"></nav>
+    <div class="stepnav">
+      <button class="btn" id="prev">← Previous stage</button>
+      <span class="muted" style="font-size:.84rem">Arrow keys also move between stages</span>
+      <button class="btn" id="next">Next stage →</button>
+    </div>
+    <section class="stage" id="stage"></section>
+  </main>
+
+  <main id="nb-view" hidden>
+    <div class="nb">
+      <nav class="toc" id="toc" aria-label="Notebook cells"></nav>
+      <div class="cells" id="cells"></div>
+    </div>
+  </main>
+</div>
+
+<script type="application/json" id="payload">/*__DATA__*/</script>
+<script>
+const D = JSON.parse(document.getElementById("payload").textContent);
+const STAGES = D.stages;
+const REL_WORD = { direct: "directly causes", indirect: "causes (through something else)", collider: "has a common effect with", confounder: "has a common cause with" };
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let state = { j: store.get("j", "j1"), s: store.get("s", 0), notes: store.get("notes", true), code: {}, q: null, cpd: null };
+if (!D.journeys.find(j => j.id === state.j)) state.j = "j1";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const $ = id => document.getElementById(id);
+const J = () => D.journeys.find(j => j.id === state.j);
+const fmt = (v, d = 2) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d);
+const edgeKey = (a, b) => a + "→" + b;
+
+/* ---------------- graph drawing ---------------- */
+function drawGraph({ pos, directed = [], undirected = [], hl = [], newEdges = [], gone = [], okEdges = [], size = 240 }) {
+  const R = 17, pad = 26, S = size;
+  const P = n => [pad + (pos[n][0] + 1) / 2 * (S - 2 * pad), pad + (1 - (pos[n][1] + 1) / 2) * (S - 2 * pad)];
+  const nk = new Set(newEdges.map(e => edgeKey(...e))), ok = new Set(okEdges.map(e => edgeKey(...e)));
+  const line = (a, b, cls, arrow) => {
+    const [x1, y1] = P(a), [x2, y2] = P(b), dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+    const sx = x1 + dx / L * R, sy = y1 + dy / L * R, ex = x2 - dx / L * (R + (arrow ? 2 : 0)), ey = y2 - dy / L * (R + (arrow ? 2 : 0));
+    const m = arrow ? ` marker-end="url(#${cls.includes("new") ? "ar-new" : cls.includes("ok") ? "ar-ok" : "ar-ink"})"` : "";
+    return `<line class="e ${cls}" x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}"${m}/>`;
+  };
+  let s = `<svg viewBox="0 0 ${S} ${S}" role="img" aria-label="causal graph">`;
+  gone.forEach(([a, b]) => s += line(a, b, "gone", false));
+  undirected.forEach(([a, b]) => s += line(a, b, "und", false));
+  directed.forEach(([a, b]) => s += line(a, b, nk.has(edgeKey(a, b)) ? "new" : ok.has(edgeKey(a, b)) ? "ok" : "", true));
+  Object.keys(pos).forEach(n => { const [x, y] = P(n);
+    s += `<g class="node${hl.includes(n) ? " hl" : ""}"><circle cx="${x}" cy="${y}" r="${R}"/><text x="${x}" y="${y + 5}" text-anchor="middle">${n}</text></g>`; });
+  return s + "</svg>";
+}
+const hlNodes = j => j.hyp ? [j.hyp.x, j.hyp.y] : [];
+
+/* ---------------- code viewer ---------------- */
+const KW = /\b(def|return|for|in|if|else|elif|not|and|or|import|from|as|class|None|True|False|lambda|while|raise|is|with|continue|break|print)\b/g;
+function hl(line) {
+  const re = /(#.*$)|((?:[rfbRF]{0,2})(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))/g;
+  let out = "", last = 0, m;
+  const plain = t => esc(t).replace(KW, '<span class="tok-k">$1</span>');
+  while ((m = re.exec(line))) { out += plain(line.slice(last, m.index));
+    out += m[1] ? `<span class="tok-c">${esc(m[1])}</span>` : `<span class="tok-s">${esc(m[2])}</span>`; last = re.lastIndex; }
+  return out + plain(line.slice(last));
+}
+function codeBlock(sn) {
+  let rows = "";
+  sn.lines.forEach((l, i) => { const note = sn.notes[String(i)];
+    rows += `<tr class="${note ? "has" : ""}"><td class="ln">${sn.start + i}</td><td class="src">${hl(l) || " "}</td></tr>`;
+    if (note && state.notes) rows += `<tr class="note"><td></td><td><div>${esc(note)}</div></td></tr>`; });
+  return `<div class="codeinfo"><span class="where">${esc(sn.where)}${sn.where.endsWith(".ipynb") ? "" : " : line " + sn.start}</span>
+    <label class="toggle"><input type="checkbox" class="notes-toggle" ${state.notes ? "checked" : ""}> line notes</label>
+    <p class="sum">${esc(sn.summary)}</p></div><div class="code"><table>${rows}</table></div>`;
+}
+function codePanel(stage) {
+  const list = D.stage_code[stage]; const cur = state.code[stage] ?? 0; const sn = list[Math.min(cur, list.length - 1)];
+  const btns = list.map((s, i) => `<button data-code="${i}" aria-pressed="${i === cur}">${esc(s.title)}</button>`).join("");
+  return `<div class="panel"><h3>The code that does it</h3><p class="muted" style="margin:0 0 10px;font-size:.86rem">Notebook cells call the functions from <code>src/causal_nlp</code>. Pick one; highlighted lines have a plain-English note under them.</p>
+    <div class="codehead">${btns}</div>${codeBlock(sn)}</div>`;
+}
+
+/* ---------------- shared text panels ---------------- */
+function textPanels(stage, storyItems) {
+  const t = D.stage_text[stage];
+  return `<div class="panel plain"><div class="eyebrow">In plain words</div><p>${esc(t.plain)}</p></div>
+  <div class="panel story"><h3>What happens to this example</h3><ul>${storyItems.map(s => `<li>${s}</li>`).join("")}</ul>
+    <details class="more"><summary>Technical version</summary><p>${esc(t.technical)}</p></details>
+    <details class="more"><summary>Why this step exists</summary><p>${esc(t.why)}</p></details></div>`;
+}
+
+/* ---------------- stage renderers ---------------- */
+const R = {};
+R.load = j => {
+  const [p, h] = j.input.split("\nHypothesis:");
+  const story = [`This row comes from the <b>${j.split}</b> set and belongs to premise #${j.columns.premise_id}.`,
+    `The answer key says: <b>${j.label ? "valid (1): the claim must be true" : "not valid (0): the story does not prove it"}</b>.`,
+    `<code>split_input</code> cuts the text at “Hypothesis:” so later stages can treat the story and the claim separately.`];
+  const vis = `<div class="panel"><h3>The raw row</h3><div class="raw">${esc(p)}\n<span class="hyp">Hypothesis:${esc(h)}</span></div>
+    <div class="tbl-wrap" style="margin-top:10px"><table class="t"><tr><th>column</th><th>value</th></tr>
+    <tr><td><code>premise</code></td><td>${esc(j.premise.slice(0, 90))}…</td></tr>
+    <tr><td><code>hypothesis</code></td><td>${esc(j.hypothesis)}</td></tr>
+    <tr><td><code>label</code></td><td class="num">${j.label}</td></tr>
+    <tr><td><code>premise_id</code></td><td class="num">${j.columns.premise_id}</td></tr></table></div></div>`;
+  return [textPanels("load", story) + vis];
+};
+R.parse = j => {
+  const nc = j.sentences.filter(s => s.rule === "_CORR").length, ni = j.sentences.filter(s => s.rule && s.rule.includes("INDEP")).length;
+  const hr = j.hyp_rule;
+  const story = [`The reader found <b>${j.variables.length} variables</b> (${j.variables.join(", ")}), <b>${nc}</b> correlation sentences and <b>${ni}</b> independence sentences.`,
+    hr.pattern_index === null
+      ? `<b style="color:var(--bad)">The claim “${esc(j.hypothesis)}” matched none of the 5 known wordings</b>, so the reader returns <code>None</code>. The rest of the pipeline never sees this claim and the answer defaults to 0. This is the gap Phase 2 (DistilBERT) fills.`
+      : `The claim matched wording #${hr.pattern_index + 1} and became <code>Hypothesis(relation='${hr.relation}', x='${hr.x}', y='${hr.y}')</code>: “${hr.x} ${REL_WORD[hr.relation]} ${hr.y}”.`,
+    `Independence facts are stored as <b>separating sets</b> (“sepsets”): the sets of variables that, once known, make the pair unrelated. <code>{}</code> means unrelated with no condition.`];
+  const rows = j.sentences.map(s => `<tr><td>${esc(s.text)}</td><td>${s.rule ? `<span class="chip">${s.rule}</span>` : `<span class="chip none">none</span>`}</td><td class="mono">${esc(s.fact)}</td></tr>`).join("");
+  const seps = Object.entries(j.sepsets).map(([k, v]) => `<tr class="${v.length ? "" : "dim"}"><td class="num">${k}</td><td class="mono">${v.length ? v.join("  ") : "none (never independent)"}</td></tr>`).join("");
+  const vis = `<div class="panel"><h3>Sentence by sentence</h3><div class="tbl-wrap"><table class="t"><tr><th>sentence</th><th>regex</th><th>fact written down</th></tr>${rows}
+    <tr class="hl"><td><b>Hypothesis:</b> ${esc(j.hypothesis)}</td><td>${hr.pattern_index === null ? `<span class="chip none">no match</span>` : `<span class="chip">pattern ${hr.pattern_index + 1}</span>`}</td>
+    <td class="mono">${hr.pattern_index === null ? "None" : `Hypothesis(${hr.relation}, ${hr.x}, ${hr.y})`}</td></tr></table></div></div>
+    <div class="panel"><h3>The finished fact sheet: separating sets per pair</h3><div class="tbl-wrap"><table class="t"><tr><th>pair</th><th>separating sets</th></tr>${seps}</table></div></div>`;
+  return [textPanels("parse", story) + vis];
+};
+R.skeleton = j => {
+  const joined = j.skeleton_table.filter(r => r.joined), removed = j.skeleton_table.filter(r => !r.joined);
+  const story = [`There are ${j.skeleton_table.length} pairs. <b>${joined.length}</b> have no separating set, so they stay joined: ${joined.map(r => r.pair[0] + "–" + r.pair[1]).join(", ") || "none"}.`,
+    removed.length ? `<b>${removed.length}</b> are removed because something separates them, e.g. ${removed.slice(0, 3).map(r => `${r.pair} by ${r.sepsets[0]}`).join(", ")}.` : `No pair is ever separated, so every pair stays joined.`,
+    `All lines are still dashed: we know <i>who</i> is linked, not <i>which way</i>.`];
+  const rows = j.skeleton_table.map(r => `<tr class="${r.joined ? "hl" : ""}"><td class="num">${r.pair}</td><td>${r.correlated ? "yes" : "no"}</td><td class="mono">${r.sepsets.join(" ") || "—"}</td><td>${r.joined ? "<b>joined</b>" : "removed"}</td></tr>`).join("");
+  const vis = `<div class="panel"><h3>Skeleton</h3><div class="graphs"><div class="gbox">${drawGraph({ pos: j.pos, undirected: j.skeleton.undirected, hl: hlNodes(j) })}<div class="cap">orange rings = the claim's two variables</div></div></div>
+    <div class="tbl-wrap" style="margin-top:8px"><table class="t"><tr><th>pair</th><th>correlated?</th><th>separating sets</th><th>result</th></tr>${rows}</table></div></div>`;
+  return [textPanels("skeleton", story) + vis];
+};
+R.vstruct = j => {
+  const cols = j.vstruct_table.filter(r => r.collider);
+  const story = j.vstruct_table.length === 0 ? ["No pair is unjoined with a shared neighbour, so there is nothing to test."] : [
+    `We test ${j.vstruct_table.length} shapes X – Z – Y where X and Y are not joined.`,
+    cols.length ? `<b>${cols.length}</b> collider(s) found: ${cols.map(r => `${r.x} → ${r.z} ← ${r.y}`).join(", ")}. In each, Z never appears in X and Y's separating sets, so Z must be a common effect.` : "No colliders: every middle variable appears in a separating set.",
+    ...j.vstruct_table.filter(r => !r.collider).slice(0, 2).map(r => `${r.z} is <b>not</b> a collider between ${r.x} and ${r.y}: it appears in their separating set ${r.z_in[0]}, so knowing ${r.z} cuts the link (a chain or common cause).`)];
+  const rows = j.vstruct_table.map(r => `<tr class="${r.collider ? "hl" : ""}"><td class="num">${r.x} – ${r.z} – ${r.y}</td><td class="mono">${r.sepsets.join(" ")}</td><td>${r.z_in.length ? `yes, in ${r.z_in.join(" ")}` : "no"}</td><td>${r.collider ? `<b>${r.x} → ${r.z} ← ${r.y}</b>` : "not a collider"}</td></tr>`).join("");
+  const newE = j.vstruct.directed;
+  const vis = `<div class="panel"><h3>After step 2</h3><div class="graphs"><div class="gbox">${drawGraph({ pos: j.pos, directed: j.vstruct.directed, undirected: j.vstruct.undirected, hl: hlNodes(j), newEdges: newE })}</div></div>
+    <div class="legend"><span class="l-new">arrow found in this step</span><span class="l-und">direction still unknown</span></div>
+    ${j.vstruct_table.length ? `<div class="tbl-wrap" style="margin-top:8px"><table class="t"><tr><th>shape</th><th>X,Y separating sets</th><th>Z inside one?</th><th>result</th></tr>${rows}</table></div>` : ""}</div>`;
+  return [textPanels("vstruct", story) + vis];
+};
+R.meek = j => {
+  const st = j.meek_steps;
+  const story = st.length ? [`<b>${st.length}</b> more arrow(s) follow by logic:`, ...st.map(s => `<b>${s.edge[0]} → ${s.edge[1]}</b> by rule ${s.rule}: ${esc(s.reason)}.`),
+    j.meek.undirected.length ? `${j.meek.undirected.length} edge(s) stay dashed: the facts cannot decide them.` : `Every edge now has a direction: the facts pin down one single graph.`]
+    : [`No Meek rule fires. The dashed edge(s) ${j.meek.undirected.map(e => e.join("–")).join(", ") || ""} could point either way without breaking any fact.`.replace(" ()", ""),
+       j.meek.undirected.length ? `So the PC output (a <b>PDAG</b>) keeps them dashed. The next stage lists the possible worlds.` : `The graph is already fully directed.`];
+  const vis = `<div class="panel"><h3>PC output (PDAG)</h3><div class="graphs"><div class="gbox">${drawGraph({ pos: j.pos, directed: j.meek.directed, undirected: j.meek.undirected, hl: hlNodes(j), newEdges: st.map(s => s.edge) })}</div></div>
+    <div class="legend"><span>proven arrow</span><span class="l-new">added by a Meek rule</span><span class="l-und">undecided</span></div></div>`;
+  return [textPanels("meek", story) + vis];
+};
+R.dags = j => {
+  const kept = j.dags.filter(d => d.status === "kept"), k = j.meek.undirected.length;
+  const holds = kept.filter(d => d.holds).length;
+  const story = [k ? `${k} dashed edge(s) → 2<sup>${k}</sup> = ${2 ** k} ways to point them. <b>${kept.length}</b> fit the facts; ${2 ** k - kept.length} break a rule.` : `No dashed edges, so there is exactly one possible world.`,
+    j.hyp ? `The claim “${j.hyp.x} ${REL_WORD[j.hyp.relation]} ${j.hyp.y}” is true in <b>${holds} of ${kept.length}</b> world(s), so <b>support = ${fmt(holds / kept.length)}</b>.` : `The claim was not understood at stage 1, so support is never computed.`,
+    j.hyp ? (holds === kept.length ? `True in every world: the facts <b>prove</b> it.` : holds === 0 ? `True in no world: the facts rule it out.` : `True in some worlds only: it <b>might</b> be true, but the facts do not force it. Corr2Cause calls that not valid.`) : ""].filter(Boolean);
+  const boxes = j.dags.map((d, i) => {
+    const tag = d.status === "kept" ? (d.holds === null ? `<span class="pill">world ${i + 1}</span>` : d.holds ? `<span class="pill ok">claim true</span>` : `<span class="pill bad">claim false</span>`) : `<span class="pill">rejected</span>`;
+    return `<div class="gbox small ${d.status}">${drawGraph({ pos: j.pos, directed: d.edges, hl: hlNodes(j), size: 200 })}${tag}<div class="cap">${d.status === "kept" ? "fits the facts" : esc(d.reason)}</div></div>`; }).join("");
+  const vis = `<div class="panel"><h3>Every orientation of the dashed edges</h3><div class="graphs">${boxes}</div></div>`;
+  return [textPanels("dags", story) + vis];
+};
+R.features = j => {
+  if (!j.features) return [textPanels("features", ["The claim was not understood, so this row gets <code>parsed = 0</code> and no features at all. It will be predicted 0 (not valid) automatically."])];
+  const f = j.features;
+  const story = [`The claim becomes a row of ${Object.keys(f).length} numbers. Highlighted rows are the non-zero ones.`,
+    `The most important number is <b>support = ${fmt(f.support)}</b>: the share of possible worlds where the claim holds.`,
+    `No feature uses the letters themselves, so renaming A→Z would give the exact same row.`];
+  const groups = Object.entries(D.feature_groups).map(([g, names]) => `<tr><th colspan="3" style="padding-top:12px">${g}</th></tr>` +
+    names.map(n => `<tr class="${f[n] ? "hl" : "dim"}"><td><code>${n}</code></td><td class="num">${Number.isInteger(f[n]) ? f[n] : fmt(f[n])}</td><td>${esc(D.feature_meaning[n])}</td></tr>`).join("")).join("");
+  return [textPanels("features", story) + `<div class="panel"><h3>The feature row</h3><div class="tbl-wrap"><table class="t">${groups}</table></div></div>`];
+};
+R.tree = j => {
+  const nodes = D.tree.nodes, on = new Set(j.tree_path);
+  const f = j.features;
+  const walk = (id, branch) => { const n = nodes[id];
+    const head = n.leaf ? `<span class="cond">leaf → P(valid) = ${fmt(n.p_valid, 3)} → predict ${n.p_valid >= 0.5 ? 1 : 0}</span>`
+      : `<span class="cond">${n.feature} ≤ ${n.threshold} ?</span>`;
+    const val = !n.leaf && f && on.has(id) ? ` <span class="pill trace">this example: ${Number.isInteger(f[n.feature]) ? f[n.feature] : fmt(f[n.feature])}</span>` : "";
+    let s = `<div class="tnode${on.has(id) ? " on" : ""}"><div class="tq"><span class="br">${branch}</span>${head}${val}<span class="meta">${n.samples.toLocaleString()} training rows</span></div>`;
+    if (!n.leaf) s += walk(n.left, "yes") + walk(n.right, "no");
+    return s + "</div>"; };
+  const right = j.prediction === j.label;
+  const pathWords = j.tree_path.filter(id => !nodes[id].leaf).map((id, i) => { const n = nodes[id]; const v = f[n.feature]; const yes = v <= n.threshold;
+    return `Is <code>${n.feature}</code> ≤ ${n.threshold}? It is ${Number.isInteger(v) ? v : fmt(v)}, so <b>${yes ? "yes" : "no"}</b>.`; });
+  const story = j.features ? [...pathWords, `Landed in a leaf where ${fmt(j.p_valid * 100, 1)}% of training rows were valid → <b>predict ${j.prediction}</b>. Gold label is ${j.label}: <b style="color:var(--${right ? "ok" : "bad"})">${right ? "correct" : "wrong"}</b>.`]
+    : [`No features, so the tree is never asked. <code>predict()</code> in notebook cell 20 fills unparsed rows with 0. Gold label is ${j.label}: <b style="color:var(--${right ? "ok" : "bad"})">${right ? "correct" : "wrong"}</b>.`];
+  const vis = `<div class="panel"><div class="verdict"><div><div class="eyebrow">P(valid)</div><div class="big">${fmt(j.p_valid, 3)}</div></div>
+    <div><div class="eyebrow">prediction</div><div class="big">${j.prediction}</div></div><div><div class="eyebrow">gold</div><div class="big">${j.label}</div></div>
+    <span class="pill ${right ? "ok" : "bad"}">${right ? "correct" : "wrong"}</span></div></div>
+    <div class="panel"><h3>The trained depth-4 tree (path of this example in orange)</h3><p class="muted" style="margin:0 0 8px;font-size:.84rem">“yes” = go left in scikit-learn's tree. Trained on 205,734 rows with the same settings as notebook cell 20.</p><div class="tree">${walk(0, "root")}</div></div>`;
+  return [textPanels("tree", story) + vis];
+};
+R.graph = j => {
+  const key = j.premise_key + ":" + (j.split === "paraphrase" ? "paraphrase" : "test");
+  const G = D.graph_stage[key];
+  const vars = j.variables;
+  const gold = new Set(G.gold_edges.map(e => edgeKey(...e)));
+  const pred = new Set(G.dag_edges.map(e => edgeKey(...e)));
+  const missing = G.gold_edges.filter(e => !pred.has(edgeKey(...e)));
+  if (!state.q || !G.queries[state.q]) state.q = Object.keys(G.queries).find(k => G.known[k] === true) || Object.keys(G.queries)[0];
+  if (!state.cpd || !G.cpds[state.cpd]) state.cpd = vars.find(v => G.cpds[v].parents.length) || vars[0];
+  const story = [`This stage looks at the <b>whole premise</b>: all ${G.n_hypotheses} claims about it, not just ours.`,
+    j.split === "paraphrase" ? `In the paraphrased set the reader understood <b>${G.n_parsed} of ${G.n_hypotheses}</b> claims, so the tree accepted none and the graph is <b>empty</b>. Every what-if answer becomes “no effect”.`
+      : `The tree accepted <b>${G.valid.length}</b> claims. The <b>${G.valid.filter(v => v.relation === "direct").length}</b> “directly causes” ones become arrows; the others (indirect, collider, confounder) summarise paths, so they are not drawn as single arrows.`,
+    G.rejected.length ? `${G.rejected.length} arrow(s) refused because they would close a loop.` : `No arrow had to be refused for making a loop.`,
+    missing.length ? `${missing.length} gold arrow(s) are missing from the predicted graph.` : `The predicted arrows match the gold arrows exactly.`,
+    ...(() => { const unasked = j.meek.directed.filter(e => !pred.has(edgeKey(...e)) && !gold.has(edgeKey(...e)));
+      return unasked.length && j.split !== "paraphrase" ? [`The PC graph also proves ${unasked.map(e => e.join(" → ")).join(", ")}, but the test set never asks “directly causes” about those pairs, so no claim exists to turn into an arrow. Only claims in the data reach this stage.`] : []; })(),
+    `Each variable then gets a probability table (“noisy-OR”): on 10% of the time by itself; each active cause switches it on with 70% chance.`];
+  const validRows = G.valid.map(v => `<tr><td>${esc(v.hypothesis)}</td><td class="num">${fmt(v.prob, 2)}</td><td class="num">${v.label}</td></tr>`).join("") || `<tr><td colspan="3" class="muted">none</td></tr>`;
+  const pos = j.pos;
+  const cp = G.cpds[state.cpd];
+  const cpdRows = cp.rows.map(r => `<tr><td class="mono">${cp.parents.length ? cp.parents.map(p => `${p}=${r.parents[p]}`).join(", ") : "(no causes)"}</td><td class="num">${fmt(r.p1, 3)}</td><td class="num">${fmt(1 - r.p1, 3)}</td></tr>`).join("");
+  const cpdBtns = vars.map(v => `<button data-cpd="${v}" aria-pressed="${v === state.cpd}">${v}</button>`).join("");
+  let mx = `<table class="matrix"><tr><th>force ↓ / watch →</th>${vars.map(v => `<th>${v}</th>`).join("")}</tr>`;
+  vars.forEach(x => { mx += `<tr><th>${x}</th>`; vars.forEach(y => {
+    if (x === y) { mx += `<td class="diag"></td>`; return; }
+    const k = x + y, q = G.queries[k], g = G.known[k]; const miss = g !== undefined && g !== (q.ace > 0.01);
+    const shade = Math.min(1, q.ace / 0.7);
+    mx += `<td><button data-q="${k}" aria-pressed="${state.q === k}" class="${miss ? "miss" : ""}" style="background:color-mix(in srgb, var(--accent) ${Math.round(shade * 55)}%, var(--surface))">${fmt(q.ace, 2)}</button></td>`; });
+    mx += "</tr>"; });
+  mx += "</table>";
+  const q = G.queries[state.q], g = G.known[state.q], [qx, qy] = state.q.split("");
+  const said = q.ace > 0.01;
+  const qExplain = q.ace > 0.01 && Math.abs(q.obs - q.ace) < 0.005 ? `Seeing and forcing agree: nothing else links ${qx} and ${qy}.`
+    : q.ace <= 0.01 && q.obs > 0.01 ? `Seeing ${qx} on makes ${qy} more likely, but forcing ${qx} does nothing: ${qy} is a cause of ${qx} (or they share a cause), and forcing cuts ${qx} off from its causes.`
+    : q.ace > 0.01 && q.obs > q.ace ? `Seeing overstates the effect: ${qx} and ${qy} share a cause, which seeing ${qx} also hints at.`
+    : q.ace <= 0.01 ? `No arrow path from ${qx} to ${qy} in the graph, so forcing ${qx} cannot reach ${qy}.` : "";
+  const vis = `<div class="panel"><h3>Accepted claims (P(valid) ≥ 0.5)</h3><div class="tbl-wrap"><table class="t"><tr><th>claim</th><th>P(valid)</th><th>gold</th></tr>${validRows}</table></div></div>
+    <div class="panel"><h3>Predicted DAG vs gold arrows</h3><div class="graphs">
+      <div class="gbox">${drawGraph({ pos, directed: G.dag_edges, hl: hlNodes(j), okEdges: G.dag_edges.filter(e => gold.has(edgeKey(...e))) })}<div class="cap">predicted (green = matches gold)</div></div>
+      <div class="gbox">${drawGraph({ pos, directed: G.gold_edges, hl: hlNodes(j) })}<div class="cap">gold “directly causes” arrows</div></div></div></div>
+    <div class="panel"><h3>Probability table (CPD) for one variable</h3><div class="codehead">${cpdBtns}</div>
+      <div class="tbl-wrap"><table class="t"><tr><th>causes</th><th>P(${state.cpd} = 1)</th><th>P(${state.cpd} = 0)</th></tr>${cpdRows}</table></div></div>
+    <div class="panel"><h3>What-if matrix: average causal effect of forcing the row variable on the column variable</h3>
+      <p class="muted" style="margin:0 0 8px;font-size:.84rem">ACE = P(col = 1 | do(row = 1)) − P(col = 1 | do(row = 0)). Darker = bigger effect. Red outline = disagrees with a question whose true answer is known. Click a cell.</p>
+      <div class="tbl-wrap">${mx}</div>
+      <div class="qdetail"><b>Force ${qx}, watch ${qy}</b>
+        <div class="barrow"><span>forcing: do(${qx})</span><div class="track"><div class="bar" style="width:${Math.max(0, q.ace) * 100}%"></div></div><span class="num">${fmt(q.ace, 3)}</span></div>
+        <div class="barrow"><span>just seeing ${qx}</span><div class="track"><div class="bar obs" style="width:${Math.max(0, q.obs) * 100}%"></div></div><span class="num">${fmt(q.obs, 3)}</span></div>
+        <div>${esc(qExplain)}</div>
+        <div>${g === undefined ? `<span class="pill">true answer not fixed by the labels</span>` : `<span class="pill ${g === said ? "ok" : "bad"}">known answer: ${g ? "yes, it changes" : "no effect"} · network says ${said ? "yes" : "no"}</span>`}</div>
+        ${g === true && !said ? `<div class="muted">This miss is a chain through an edge whose direction the correlations cannot reveal, so that edge is not in the DAG.</div>` : ""}
+      </div></div>`;
+  return [textPanels("graph", story) + vis];
+};
+
+/* ---------------- render ---------------- */
+function renderJourneys() {
+  $("journeys").innerHTML = D.journeys.map(j => { const right = j.prediction === j.label;
+    return `<button class="jcard" data-j="${j.id}" aria-pressed="${j.id === state.j}"><span class="jt">${esc(j.title)}</span><span class="jh">“${esc(j.hypothesis)}”</span>
+      <span class="pills"><span class="pill">gold ${j.label}</span><span class="pill ${right ? "ok" : "bad"}">${right ? "model right" : "model wrong"}</span>${j.split === "paraphrase" ? '<span class="pill trace">paraphrase</span>' : ""}</span></button>`; }).join("");
+}
+function render() {
+  const j = J(); const stage = STAGES[state.s];
+  renderJourneys();
+  const right = j.prediction === j.label;
+  $("claim").innerHTML = `<div><div class="eyebrow">Claim being traced · ${esc(j.split)} set · ${j.variables.length} variables</div><q>${esc(j.hypothesis)}</q><div class="sub">${esc(j.blurb)}</div></div>
+    <div class="pills"><span class="pill acc">gold label ${j.label}</span><span class="pill trace">P(valid) ${fmt(j.p_valid, 2)}</span><span class="pill ${right ? "ok" : "bad"}">prediction ${j.prediction} · ${right ? "correct" : "wrong"}</span></div>`;
+  const dead = !j.hyp;
+  $("rail").innerHTML = STAGES.map((s, i) => `<button data-s="${i}" class="${i < state.s ? "done" : ""} ${dead && i > 1 && i < 8 && ["features", "tree"].includes(s) ? "dead" : ""}" ${i === state.s ? 'aria-current="step"' : ""}><span class="n">${i + 1} / ${STAGES.length}</span><span class="t">${esc(D.stage_text[s].name)}</span></button>`).join("");
+  $("prev").disabled = state.s === 0; $("next").disabled = state.s === STAGES.length - 1;
+  const [left] = R[stage](j);
+  $("stage").innerHTML = `<div class="col">${left}</div><div class="col">${codePanel(stage)}</div>`;
+  store.set("j", state.j); store.set("s", state.s);
+}
+
+/* ---------------- notebook view ---------------- */
+const usedIn = {};
+Object.entries(D.stage_code).forEach(([st, list]) => list.forEach(sn => { if (sn.id.startsWith("nb:")) (usedIn[sn.id] ??= []).push(D.stage_text[st].name); }));
+function renderNotebook() {
+  let toc = "", cells = "";
+  D.notebook.forEach(c => {
+    if (c.kind === "markdown") {
+      const first = c.source.trim().split("\n")[0];
+      const isHead = first.startsWith("#");
+      if (isHead) toc += `<a class="sec" href="#cell-${c.cell}">${esc(first.replace(/^#+\s*/, ""))}</a>`;
+      const rest = isHead ? c.source.trim().split("\n").slice(1).join("\n").trim() : c.source.trim();
+      cells += `<div class="mdcell" id="cell-${c.cell}">${isHead ? `<h2>${esc(first.replace(/^#+\s*/, ""))}</h2>` : ""}${rest ? `<details><summary class="muted" style="cursor:pointer;font-size:.84rem">markdown cell ${c.cell}: show text</summary><pre>${esc(rest)}</pre></details>` : ""}</div>`;
+    } else {
+      const sn = c.snippet;
+      toc += `<a href="#cell-${c.cell}">cell ${c.cell} · ${esc(sn.summary.split(":")[0].slice(0, 40))}</a>`;
+      const used = usedIn["nb:" + c.cell];
+      cells += `<div class="panel" id="cell-${c.cell}"><div class="cellhead"><span class="cn">In [${c.cell}]</span><h3>${esc(sn.summary)}</h3>${used ? `<span class="used">· traced in stage: ${used.map(esc).join(", ")}</span>` : ""}</div>${codeBlock(sn)}</div>`;
+    }
+  });
+  $("toc").innerHTML = toc; $("cells").innerHTML = cells;
+}
+
+/* ---------------- events ---------------- */
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.j) { state.j = b.dataset.j; state.q = null; state.cpd = null; render(); }
+  else if (b.dataset.s !== undefined) { state.s = +b.dataset.s; render(); }
+  else if (b.dataset.code !== undefined) { state.code[STAGES[state.s]] = +b.dataset.code; render(); }
+  else if (b.dataset.q) { state.q = b.dataset.q; render(); }
+  else if (b.dataset.cpd) { state.cpd = b.dataset.cpd; render(); }
+  else if (b.id === "prev" && state.s > 0) { state.s--; render(); }
+  else if (b.id === "next" && state.s < STAGES.length - 1) { state.s++; render(); }
+  else if (b.id === "mode-trace" || b.id === "mode-nb") {
+    const nb = b.id === "mode-nb"; $("trace-view").hidden = nb; $("nb-view").hidden = !nb;
+    $("mode-trace").setAttribute("aria-pressed", !nb); $("mode-nb").setAttribute("aria-pressed", nb);
+    if (nb) renderNotebook(); }
+});
+document.addEventListener("change", e => {
+  if (e.target.classList.contains("notes-toggle")) { state.notes = e.target.checked; store.set("notes", state.notes); render(); if (!$("nb-view").hidden) renderNotebook(); }
+});
+document.addEventListener("keydown", e => {
+  if (!$("nb-view").hidden || e.target.matches("input, textarea")) return;
+  if (e.key === "ArrowRight" && state.s < STAGES.length - 1) { state.s++; render(); }
+  if (e.key === "ArrowLeft" && state.s > 0) { state.s--; render(); }
+});
+render();
+</script>
