@@ -19,6 +19,7 @@ tests/test_pipeline.py          unit tests
 results/                        metrics + test triples saved for the Phase 2 comparison
 tools/build_visualiser.py       builds docs/pipeline_visualiser.html (step-by-step pipeline tracer)
 docs/pipeline_visualiser.html   open in a browser: real examples traced through every stage
+ReportContext/                  Phase 1 report (LaTeX + PDF), figures, project brief and reference papers
 ```
 
 ## Setup (Python 3.11)
