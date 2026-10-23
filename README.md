@@ -2,7 +2,7 @@
 
 Semester project: extract cause–effect relations from text, assemble them into a DAG, and answer
 intervention queries with a Bayesian network (pgmpy). Phase 1 = classical ML, Phase 2 = DistilBERT.
-See [PLAN.md](PLAN.md) for the full plan, results and viva notes.
+See the [Phase 1 report](report/Phase1_Report.pdf) for the method and results.
 
 ## Layout
 ```
@@ -26,7 +26,6 @@ tools/
   build_visualiser.py           builds docs/pipeline_visualiser.html (step-by-step pipeline tracer)
 docs/
   pipeline_visualiser.html      open in a browser: real examples traced through every stage
-  brief/                        course project instructions and project ideas
   papers/                       reference papers (BERT)
 ```
 
