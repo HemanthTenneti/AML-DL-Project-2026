@@ -16,10 +16,18 @@ notebooks/
   01_phase1_ml_pipeline.ipynb   Phase 1 deliverable (executed, with outputs)
   build_phase1_notebook.py      regenerates the notebook
 tests/test_pipeline.py          unit tests
-results/                        metrics + test triples saved for the Phase 2 comparison
-tools/build_visualiser.py       builds docs/pipeline_visualiser.html (step-by-step pipeline tracer)
-docs/pipeline_visualiser.html   open in a browser: real examples traced through every stage
-ReportContext/                  Phase 1 report (LaTeX + PDF), figures, project brief and reference papers
+results/                        metrics, test triples and report numbers saved for the Phase 2 comparison
+report/
+  Phase1_Report.tex / .pdf      Phase 1 report (LaTeX source + compiled PDF)
+  Phase1_Presentation.pdf       Phase 1 slides (7 slides + 6 backup slides for the viva)
+  figures/                      figures used by the report
+tools/
+  make_report_figures.py        re-runs the pipeline and redraws report/figures/
+  build_visualiser.py           builds docs/pipeline_visualiser.html (step-by-step pipeline tracer)
+docs/
+  pipeline_visualiser.html      open in a browser: real examples traced through every stage
+  brief/                        course project instructions and project ideas
+  papers/                       reference papers (BERT)
 ```
 
 ## Setup (Python 3.11)
@@ -47,4 +55,6 @@ Two ways to get it:
 .venv/bin/python -m pytest -q                                   # 14 unit tests
 .venv/bin/jupyter lab notebooks/01_phase1_ml_pipeline.ipynb     # Phase 1 notebook (~1-2 min on a laptop CPU)
 .venv/bin/python tools/build_visualiser.py                      # rebuild docs/pipeline_visualiser.html
+.venv/bin/python tools/make_report_figures.py                   # redraw report figures (~5 min)
+cd report && pdflatex Phase1_Report.tex && pdflatex Phase1_Report.tex   # rebuild the report PDF
 ```

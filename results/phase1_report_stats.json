@@ -78,7 +78,7 @@
    "confounder(C,E)": 0.6666666666666666
   }
  },
- "tfidf_train_s": 41,
+ "tfidf_train_s": 40,
  "ablation": [
   {
    "features": "relation + text facts",

@@ -1,9 +1,9 @@
 % =====================================================================
 %  Neuro-Symbolic Causal Inference — Phase 1 (Machine Learning) Report
-%  Compile:  tectonic Phase1_Report.tex      (or pdflatex twice / Overleaf)
-%  Figures live in ./figures (regenerated from the project code).
+%  Compile:  pdflatex Phase1_Report.tex (twice), tectonic, or Overleaf.
+%  Figures live in ./figures (regenerate with tools/make_report_figures.py).
 % =====================================================================
-\documentclass[11pt,a4paper]{article}
+\documentclass[12pt,a4paper]{article}
 
 % ---------------------------------------------------------------- edit me
 \newcommand{\MemberA}{Krishnadevan Manju Liby}
@@ -18,145 +18,107 @@
 
 % ---------------------------------------------------------------- packages
 \usepackage[T1]{fontenc}
+\usepackage{lmodern}
 \usepackage{amsmath,amssymb}
-\usepackage{XCharter}
-\usepackage[scale=0.93]{sourcesanspro}
-\usepackage[xcharter,vvarbb]{newtxmath}
-\usepackage[a4paper,top=2.5cm,bottom=2.4cm,left=2.4cm,right=2.4cm,headheight=14pt]{geometry}
+\usepackage[a4paper,margin=2.5cm,headheight=15pt]{geometry}
 \usepackage[table]{xcolor}
-\usepackage{graphicx,booktabs,tabularx,array,multirow,enumitem,microtype}
+\usepackage{graphicx,booktabs,tabularx,array,enumitem,microtype}
 \usepackage[nobottomtitles*]{titlesec}
 \usepackage{fancyhdr,caption,subcaption,listings}
-\renewcommand{\bottomtitlespace}{0.18\textheight}
+\renewcommand{\bottomtitlespace}{0.15\textheight}
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,calc,shapes.geometric,fit,backgrounds}
-\usepackage[most]{tcolorbox}
-\usepackage[hidelinks]{hyperref}
+\usepackage{hyperref}
 \usepackage[nameinlink,capitalise]{cleveref}
 
-% ---------------------------------------------------------------- palette
-% One colour per pipeline layer, used consistently in text, diagrams and plots.
-\definecolor{ink}{HTML}{1B2A41}      % navy: text, headings
-\definecolor{neural}{HTML}{6C4AB6}   % violet: language layer (text -> facts)
-\definecolor{symbolic}{HTML}{0F8B8D} % teal: reasoning layer (PC + classifier)
-\definecolor{causal}{HTML}{E07A2F}   % amber: graph layer (DAG, BN, do-queries)
-\definecolor{mist}{HTML}{EEF1F5}
-\definecolor{slate}{HTML}{5B6B7F}
-\colorlet{neuralT}{neural!10}
-\colorlet{symbolicT}{symbolic!10}
-\colorlet{causalT}{causal!12}
+% ---------------------------------------------------------------- colours
+\definecolor{navy}{HTML}{1F4E79}     % title, section headings
+\definecolor{accent}{HTML}{4A86C5}   % subsection headings, links
+\definecolor{rowtint}{HTML}{E8EEF7}  % alternate table rows
+\colorlet{slate}{black!55}
+% diagram colours (all three pipeline layers share the report's navy)
+\colorlet{neural}{navy}\colorlet{symbolic}{navy}\colorlet{causal}{navy}
+\colorlet{neuralT}{rowtint}\colorlet{symbolicT}{rowtint}\colorlet{causalT}{rowtint}
+\colorlet{ink}{black}
 
-\hypersetup{colorlinks=true,linkcolor=symbolic,citecolor=neural,urlcolor=causal}
-\color{ink}
+\hypersetup{colorlinks=true,linkcolor=accent,citecolor=accent,urlcolor=accent,
+  pdftitle={Neuro-Symbolic Causal Inference -- Phase 1 Report},pdfauthor={Team Project 1}}
 
 % ---------------------------------------------------------------- headings
-\titleformat{\section}{\sffamily\Large\bfseries\color{ink}}
-  {\tikz[baseline=(n.base)]\node[fill=symbolic,text=white,rounded corners=2pt,inner sep=4pt,minimum width=1.6em](n){\thesection};}{0.6em}{}
-  [\vspace{-0.6em}{\color{symbolic!40}\rule{\linewidth}{0.6pt}}]
-\titleformat{\subsection}{\sffamily\large\bfseries\color{ink}}{{\color{symbolic}\thesubsection}}{0.6em}{}
-\titleformat{\subsubsection}{\sffamily\normalsize\bfseries\color{slate}}{}{0em}{}
-\titlespacing*{\section}{0pt}{1.6em}{0.9em}
-\titlespacing*{\subsection}{0pt}{1.2em}{0.4em}
+\titleformat{\section}{\Large\bfseries\color{navy}}{\thesection.}{0.5em}{}[\vspace{2pt}{\color{navy}\titlerule[0.6pt]}]
+\titleformat{\subsection}{\large\bfseries\color{accent}}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.4em}{0.8em}
+\titlespacing*{\subsection}{0pt}{1.1em}{0.5em}
+\titlespacing*{\subsubsection}{0pt}{1.0em}{0.4em}
 
 % ---------------------------------------------------------------- header/footer
 \pagestyle{fancy}\fancyhf{}
-\renewcommand{\headrulewidth}{0pt}
-\fancyhead[L]{\sffamily\small\color{slate}Neuro-Symbolic Causal Inference}
-\fancyhead[R]{\sffamily\small\color{slate}Phase 1 Report \textbullet{} Project 1}
-\fancyfoot[C]{\sffamily\small\color{slate}\thepage}
-\fancyfoot[L]{\tikz{\fill[neural](0,0)rectangle(0.5,0.08);\fill[symbolic](0.5,0)rectangle(1,0.08);\fill[causal](1,0)rectangle(1.5,0.08);}}
+\fancyhead[L]{\small\bfseries\color{navy}Neuro-Symbolic Causal Inference}
+\fancyhead[R]{\small\color{accent}Phase 1 Report}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
 
 % ---------------------------------------------------------------- captions, lists, tables
-\captionsetup{font=small,labelfont={sf,bf,color=symbolic},labelsep=period,margin=0.5em}
-\setlist{nosep,leftmargin=1.4em,topsep=0.3em}
-\setlist[itemize]{label={\color{symbolic}\small$\blacktriangleright$}}
-\renewcommand{\arraystretch}{1.18}
-\newcommand{\thead}[1]{\leavevmode\sffamily\bfseries\color{white}#1}
-\newcommand{\headrow}{\rowcolor{ink}}
+\captionsetup{labelsep=colon,margin=0.5em}
+\setlist{leftmargin=1.4em,itemsep=0.25em,topsep=0.4em}
+\renewcommand{\arraystretch}{1.25}
+\newcommand{\thead}[1]{\textbf{#1}}
+\makeatletter % float pages: stack floats from the top instead of centring them
+\setlength{\@fptop}{0pt}\setlength{\@fpsep}{1.5em}\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
 
-% ---------------------------------------------------------------- boxes & chips
-\newtcolorbox{keybox}[1][Key takeaway]{enhanced,breakable,colback=symbolicT,colframe=symbolic,
-  boxrule=0pt,leftrule=3pt,arc=1pt,left=8pt,right=8pt,top=5pt,bottom=5pt,
-  fonttitle=\sffamily\bfseries\small,coltitle=symbolic,colbacktitle=symbolicT,title=#1,
-  attach title to upper={\ \ }}
-\newtcolorbox{theorybox}[1]{enhanced,breakable,colback=white,colframe=ink!70,boxrule=0.5pt,arc=2pt,
-  left=8pt,right=8pt,top=5pt,bottom=6pt,title={\sffamily\bfseries\small #1},colbacktitle=mist,coltitle=ink,
-  toptitle=2pt,bottomtitle=2pt}
-\newtcolorbox{examplebox}[1][]{enhanced,colback=mist,colframe=mist,arc=2pt,left=8pt,right=8pt,top=6pt,bottom=6pt,#1}
-\newcommand{\chip}[2]{\tcbox[on line,colback=#1,colframe=#1,coltext=white,arc=2pt,boxsep=0pt,
-  left=3pt,right=3pt,top=1.5pt,bottom=1.5pt,fontupper=\sffamily\bfseries\scriptsize]{#2}}
-\newcommand{\LL}{\chip{neural}{LANGUAGE}}
-\newcommand{\RL}{\chip{symbolic}{REASONING}}
-\newcommand{\GL}{\chip{causal}{GRAPH}}
-\newcommand{\code}[1]{\texttt{\small\color{neural!80!black}#1}}
+% ---------------------------------------------------------------- plain environments
+\newenvironment{theorybox}[1]{\subsubsection*{#1}}{}
+\newenvironment{keybox}{\par\medskip\noindent\textbf{Key takeaway.}\ }{\par\medskip}
+\newenvironment{examplebox}{\begin{quote}}{\end{quote}}
+\newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\doop}{\mathrm{do}}
 
-\lstset{basicstyle=\ttfamily\footnotesize,keywordstyle=\color{neural}\bfseries,commentstyle=\color{slate}\itshape,
-  stringstyle=\color{causal!80!black},backgroundcolor=\color{mist},frame=none,xleftmargin=6pt,framexleftmargin=6pt,
-  aboveskip=6pt,belowskip=6pt,columns=fullflexible,keepspaces=true,showstringspaces=false,language=Python}
+\lstset{basicstyle=\ttfamily\footnotesize,keywordstyle=\bfseries,commentstyle=\itshape,
+  frame=none,xleftmargin=0pt,aboveskip=8pt,belowskip=8pt,columns=fullflexible,keepspaces=true,
+  showstringspaces=false,language=Python}
 
 % =====================================================================
 \begin{document}
 
 % ---------------------------------------------------------------- title page
 \begin{titlepage}
-\thispagestyle{empty}
-\begin{tikzpicture}[remember picture,overlay]
-  \fill[ink] (current page.north west) rectangle ([yshift=-12.2cm]current page.north east);
-  \fill[neural]   ([yshift=-12.2cm]current page.north west) rectangle ([xshift=7cm,yshift=-12.5cm]current page.north west);
-  \fill[symbolic] ([xshift=7cm,yshift=-12.2cm]current page.north west) rectangle ([xshift=14cm,yshift=-12.5cm]current page.north west);
-  \fill[causal]   ([xshift=14cm,yshift=-12.2cm]current page.north west) rectangle ([yshift=-12.5cm]current page.north east);
-  % decorative causal graph in the banner
-  \begin{scope}[shift={([xshift=-5.3cm,yshift=-4.2cm]current page.north east)},
-      every node/.style={circle,minimum size=0.95cm,font=\sffamily\bfseries,text=white,line width=1.2pt},
-      arr/.style={-{Stealth[length=2.6mm]},line width=1.1pt,white!70!ink}]
-    \node[fill=neural]   (A) at (0,1.2)  {A};
-    \node[fill=symbolic] (B) at (2.6,1.6){B};
-    \node[fill=symbolic] (C) at (1.2,-0.4){C};
-    \node[fill=causal]   (D) at (3.6,-0.2){D};
-    \node[fill=neural]   (E) at (0.2,-2.2){E};
-    \node[fill=causal]   (F) at (2.8,-2.4){F};
-    \draw[arr] (A)--(C); \draw[arr] (B)--(C); \draw[arr] (B)--(D); \draw[arr] (C)--(F);
-    \draw[arr] (D)--(F); \draw[arr] (C)--(E);
-    \draw[white!45!ink,dashed,line width=1pt] (A)--(E);
-  \end{scope}
-  \node[anchor=north west,text width=11cm,align=left] at ([xshift=2.4cm,yshift=-2.3cm]current page.north west)
-    {\sffamily\small\bfseries\color{causal}PROJECT 1 \textbullet{} CAUSAL NLP REASONING};
-  \node[anchor=north west,text width=11.2cm,align=left] at ([xshift=2.4cm,yshift=-3.2cm]current page.north west)
-    {\sffamily\fontsize{30}{34}\selectfont\bfseries\color{white}Neuro-Symbolic\\Causal Inference};
-  \node[anchor=north west,text width=11.6cm,align=left] at ([xshift=2.4cm,yshift=-6.15cm]current page.north west)
-    {\sffamily\large\hyphenpenalty=10000\color{white!80!ink}via Language-Model Knowledge Extraction and Bayesian Networks};
-  \node[anchor=north west,text width=11cm,align=left] at ([xshift=2.4cm,yshift=-8.4cm]current page.north west)
-    {\tcbox[on line,colback=white,colframe=white,arc=2pt,boxsep=0pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
-      fontupper=\sffamily\bfseries\small\color{ink}]{PHASE 1 \;\textbar\; MACHINE LEARNING EVALUATION}};
-  \node[anchor=north west,text width=11cm,align=left] at ([xshift=2.4cm,yshift=-9.6cm]current page.north west)
-    {\sffamily\small\color{white!70!ink}Project Report \textbullet{} \ReportDate};
-\end{tikzpicture}
-
-\vspace*{11.4cm}
-\begin{center}
-\begin{minipage}{0.86\textwidth}\sffamily
-\begin{tabularx}{\linewidth}{@{}>{\leavevmode\bfseries\color{slate}\small}p{3.3cm}X@{}}
-SUBMITTED BY & \MemberA \\ & \MemberB \\ & \MemberC \\ & \MemberD \\ & \MemberE \\[0.6em]
-INSTITUTION  & \Institution \\[0.3em]
-COURSE       & \Course \\[0.3em]
-DATASET      & Corr2Cause (Jin et al., ICLR 2024), corrected labels \\[0.3em]
-REPOSITORY   & \small\url{\RepoURL}
-\end{tabularx}
-\end{minipage}
-
+\centering
+\vspace*{2.2cm}
+{\color{navy}\rule{\linewidth}{0.8pt}}\par\vspace{1.0cm}
+{\Huge\bfseries\color{navy} Neuro-Symbolic Causal Inference\par}
+\vspace{0.4cm}
+{\Large\bfseries\color{navy} via Language-Model Knowledge Extraction\\[0.15em] and Bayesian Networks\par}
+\vspace{0.9cm}
+{\color{navy}\rule{\linewidth}{0.8pt}}\par\vspace{1.1cm}
+{\large\bfseries\color{accent} Project 1 --- Phase 1: Machine Learning Evaluation\par}
+\vspace{0.6cm}
+{\large \Course\par}
+\vspace{1.2cm}
+\begin{tabular}{@{}>{\bfseries}l l@{}}
+Dataset     & Corr2Cause (Jin et al., ICLR 2024), corrected labels \\
+Framework   & scikit-learn, NetworkX, pgmpy \\
+Institution & \Institution \\
+Repository  & \small\url{\RepoURL} \\
+\end{tabular}
+\par\vspace{1.4cm}
+{\color{navy}\rule{0.6\linewidth}{0.6pt}}\par\vspace{0.6cm}
+{\large\bfseries Team Members\par}\vspace{0.2cm}
+{\large \MemberA\\ \MemberB\\ \MemberC\\ \MemberD\\ \MemberE\par}
 \vfill
-\begin{minipage}{0.86\textwidth}\sffamily\small
-{\color{slate}\bfseries COLOUR KEY USED THROUGHOUT THIS REPORT}\\[0.4em]
-\LL\ text $\rightarrow$ facts \qquad \RL\ facts $\rightarrow$ valid claims \qquad \GL\ claims $\rightarrow$ DAG $\rightarrow$ what-if
-\end{minipage}
-\end{center}
+{\large \ReportDate\par}
 \end{titlepage}
 
-% ---------------------------------------------------------------- abstract + contents
-\setcounter{page}{2}
-\begin{tcolorbox}[enhanced,colback=mist,colframe=mist,arc=2pt,left=12pt,right=12pt,top=10pt,bottom=10pt]
-{\sffamily\bfseries\large Abstract}\par\smallskip
+% ---------------------------------------------------------------- contents
+\setcounter{page}{1}
+\setcounter{tocdepth}{2}
+\tableofcontents
+\newpage
+
+% =====================================================================
+\section{Abstract}
 Language models are good at sounding causal and bad at \emph{being} causal: given a list of
 correlations, they often claim causes that the data cannot support. This project separates the two jobs.
 A \emph{language layer} turns text into structured statistical facts; a \emph{reasoning layer} applies
@@ -171,15 +133,7 @@ Rules\,+\,PC\,+\,Decision-Tree pipeline reaches an F1 of \textbf{0.997} on the h
 \textbf{97.5\%} of 242 known intervention queries correctly. An ablation shows that the reasoning
 features, not the wording, carry the signal. The one clear failure, \emph{paraphrased} hypotheses that the
 hand-written rules cannot read (F1 = 0), is the gap that Phase~2 targets with DistilBERT.
-\end{tcolorbox}
 
-\vspace{0.8em}
-{\sffamily
-\setcounter{tocdepth}{1}
-\renewcommand{\contentsname}{\large Contents}
-\tableofcontents}
-
-\newpage
 % =====================================================================
 \section{Introduction}
 
@@ -197,28 +151,29 @@ fairly with Phase~1.
 
 \begin{figure}[!htbp]
 \centering
+\resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[
   stage/.style={draw=#1,fill=white,rounded corners=3pt,line width=0.9pt,minimum height=1.3cm,
-                text width=2.55cm,align=center,font=\sffamily\scriptsize,execute at begin node=\hyphenpenalty 10000\relax},
-  data/.style={font=\sffamily\tiny\itshape,text=slate,align=center},
+                text width=2.55cm,align=center,font=\scriptsize,execute at begin node=\hyphenpenalty 10000\relax},
+  data/.style={font=\tiny\itshape,text=slate,align=center},
   flow/.style={-{Stealth[length=2mm]},line width=0.9pt,ink!70},
   node distance=0.9cm]
   \node[stage=neural]   (s1) {\textbf{1. Extract}\\regex rules\\text $\rightarrow$ facts};
   \node[stage=symbolic, right=of s1] (s2) {\textbf{2. PC algorithm}\\skeleton, colliders,\\Meek rules $\rightarrow$ PDAG};
   \node[stage=symbolic, right=of s2] (s3) {\textbf{3--4. Features + tree}\\23 features,\\depth-4 decision tree};
   \node[stage=causal,   right=of s3] (s5) {\textbf{5. Graph stage}\\acyclic DAG,\\noisy-OR BN, do-queries};
-  \node[data,left=0.45cm of s1,font=\sffamily\scriptsize\itshape] (txt) {premise\\+ hypothesis};
+  \node[data,left=0.45cm of s1,font=\scriptsize\itshape] (txt) {premise\\+ hypothesis};
   \draw[flow] (txt)--(s1); \draw[flow] (s1)--(s2); \draw[flow] (s2)--(s3); \draw[flow] (s3)--(s5);
   \node[data,below=0.08cm of $(s1.east)!0.5!(s2.west)$] {facts +\\$(r,x,y)$};
   \node[data,below=0.08cm of $(s2.east)!0.5!(s3.west)$] {PDAG,\\worlds};
     \node[data,below=0.08cm of $(s3.east)!0.5!(s5.west)$] {triples\\+ prob};
   \begin{scope}[on background layer]
-    \node[fit=(s1),fill=neuralT,rounded corners=4pt,inner sep=5pt,label={[font=\sffamily\scriptsize\bfseries,text=neural]above:LANGUAGE LAYER}] {};
-    \node[fit=(s2)(s3),fill=symbolicT,rounded corners=4pt,inner sep=5pt,label={[font=\sffamily\scriptsize\bfseries,text=symbolic]above:REASONING LAYER}] {};
-    \node[fit=(s5),fill=causalT,rounded corners=4pt,inner sep=5pt,label={[font=\sffamily\scriptsize\bfseries,text=causal]above:GRAPH LAYER}] {};
+    \node[fit=(s1),fill=neuralT,rounded corners=4pt,inner sep=5pt,label={[font=\scriptsize\bfseries,text=neural]above:LANGUAGE LAYER}] {};
+    \node[fit=(s2)(s3),fill=symbolicT,rounded corners=4pt,inner sep=5pt,label={[font=\scriptsize\bfseries,text=symbolic]above:REASONING LAYER}] {};
+    \node[fit=(s5),fill=causalT,rounded corners=4pt,inner sep=5pt,label={[font=\scriptsize\bfseries,text=causal]above:GRAPH LAYER}] {};
   \end{scope}
-  \node[font=\sffamily\scriptsize\bfseries,text=neural,below=0.32cm of s1] {$\uparrow$ Phase 2: DistilBERT slots in here};
-\end{tikzpicture}
+  \node[font=\scriptsize\bfseries,text=neural,below=0.32cm of s1] {$\uparrow$ Phase 2: DistilBERT slots in here};
+\end{tikzpicture}}
 \caption{The Phase~1 pipeline. Each layer has one job and a fixed interface. The language layer is the only
 part Phase~2 will replace, so the reasoning and graph layers (and the evaluation code) stay identical.}
 \label{fig:pipeline}
@@ -240,13 +195,16 @@ part Phase~2 will replace, so the reasoning and graph layers (and the evaluation
 \caption{Where each Phase~1 evaluation criterion is addressed.}
 \label{tab:rubric}
 \begin{tabularx}{0.92\linewidth}{@{}lX@{}}
-\headrow \thead{Criterion} & \thead{Section(s)} \\
+\toprule
+\thead{Criterion} & \thead{Section(s)} \\
+\midrule
 Literature review & \cref{sec:lit} \\
-\rowcolor{mist} Dataset quality \& EDA & \cref{sec:data} (splits, leakage check, label correction, class balance) \\
+\rowcolor{rowtint} Dataset quality \& EDA & \cref{sec:data} (splits, leakage check, label correction, class balance) \\
 Feature engineering & \cref{sec:features} (23 features in 4 groups) and the ablation in \cref{sec:ablation} \\
-\rowcolor{mist} Theoretical rigour & \cref{sec:theory} (Markov equivalence, support criterion, do-calculus) \\
+\rowcolor{rowtint} Theoretical rigour & \cref{sec:theory} (Markov equivalence, support criterion, do-calculus) \\
 Model application & \cref{sec:results,sec:graph} \\
-\rowcolor{mist} GitHub repository \& code quality & \cref{sec:repro} \\
+\rowcolor{rowtint} GitHub repository \& code quality & \cref{sec:repro} \\
+\bottomrule
 \end{tabularx}
 \end{table}
 
@@ -289,11 +247,14 @@ interventions are guaranteed by symbolic machinery rather than hoped for from a 
 \caption{How the main approaches compare, and what we take from each.}
 \label{tab:lit}
 \begin{tabularx}{\linewidth}{@{}>{\raggedright}p{3.1cm}>{\raggedright}X>{\raggedright\arraybackslash}X@{}}
-\headrow \thead{Approach} & \thead{Strength} & \thead{Limitation / our use} \\
+\toprule
+\thead{Approach} & \thead{Strength} & \thead{Limitation / our use} \\
+\midrule
 Pattern-based extraction~\cite{khoo2000,girju2003} & Precise, explainable & Brittle to rewording. \emph{Our Phase~1 language layer.} \\
-\rowcolor{mist} PC algorithm + Meek rules~\cite{spirtes2000,meek1995} & Provably sound orientation & Needs independence facts as input. \emph{Our reasoning core.} \\
+\rowcolor{rowtint} PC algorithm + Meek rules~\cite{spirtes2000,meek1995} & Provably sound orientation & Needs independence facts as input. \emph{Our reasoning core.} \\
 Bayesian networks, do-calculus~\cite{pearl1988,pearl2009} & Uncertainty and interventions & Needs a DAG. \emph{Our graph layer (pgmpy~\cite{ankan2015}).} \\
-\rowcolor{mist} End-to-end transformers~\cite{devlin2019,sanh2019} & Robust to wording & Shortcut-prone at reasoning~\cite{jin2024corr2cause}. \emph{Phase~2 language layer.} \\
+\rowcolor{rowtint} End-to-end transformers~\cite{devlin2019,sanh2019} & Robust to wording & Shortcut-prone at reasoning~\cite{jin2024corr2cause}. \emph{Phase~2 language layer.} \\
+\bottomrule
 \end{tabularx}
 \end{table}
 
@@ -307,9 +268,8 @@ Each row pairs a \emph{premise} (all statistical relations in a closed system of
 \begin{examplebox}
 \small\textbf{Premise.} Suppose there is a closed system of 3 variables, A, B and C. All the statistical relations
 among these 3 variables are as follows: A correlates with C. B correlates with C. However, A is independent of B.\\[0.3em]
-\textbf{Hypotheses.} ``A directly causes C.'' \chip{symbolic}{label 1} \quad
-``B directly causes A.'' \chip{slate}{label 0} \quad
-``There exists at least one collider of B and C.'' \chip{slate}{label 0}
+\textbf{Hypotheses.} ``A directly causes C.'' (label 1); \ ``B directly causes A.'' (label 0); \
+``There exists at least one collider of B and C.'' (label 0).
 \end{examplebox}
 
 The reasoning: A and C are dependent, B and C are dependent, but A and B are independent. The only structure
@@ -334,12 +294,15 @@ Two official robustness sets reuse the 21 test premises: \emph{refactorization} 
 \caption{Data used in Phase~1 (corrected labels).}
 \label{tab:splits}
 \begin{tabular}{@{}lrrrl@{}}
-\headrow \thead{Split} & \thead{Rows} & \thead{Premises} & \thead{\% valid} & \thead{Purpose} \\
+\toprule
+\thead{Split} & \thead{Rows} & \thead{Premises} & \thead{\% valid} & \thead{Purpose} \\
+\midrule
 train            & 205{,}734 & 2{,}338 & 21.0 & fit all models \\
-\rowcolor{mist} dev & 1{,}076 & 22 & 14.8 & secondary check \\
+\rowcolor{rowtint} dev & 1{,}076 & 22 & 14.8 & secondary check \\
 test             & 1{,}162 & 21 & 16.5 & headline results \\
-\rowcolor{mist} refactorization & 2{,}246 & 21 & 16.2 & robustness: renamed variables \\
+\rowcolor{rowtint} refactorization & 2{,}246 & 21 & 16.2 & robustness: renamed variables \\
 paraphrase       & 2{,}246 & 21 & 16.2 & robustness: reworded hypotheses \\
+\bottomrule
 \end{tabular}
 \end{table}
 
@@ -378,29 +341,29 @@ Three EDA findings shaped the design:
 This section collects the theory the pipeline relies on. Each result is short, but together they explain why the
 system is correct by construction rather than by luck.
 
-\begin{theorybox}{T1 \quad Faithfulness and the skeleton}
+\begin{theorybox}{T1: Faithfulness and the skeleton}
 In a faithful causal DAG, two variables $X,Y$ are \emph{adjacent} if and only if no set $S$ of other variables
 makes them conditionally independent ($X \not\!\perp\!\!\!\perp Y \mid S$ for all $S$). Corr2Cause lists every
 independence, so the skeleton is read off directly: join $X$ and $Y$ when they have no separating set.
 \end{theorybox}
 
-\begin{theorybox}{T2 \quad Colliders are identifiable; most other edges are not}
+\begin{theorybox}{T2: Colliders are identifiable; most other edges are not}
 For a path $X - Z - Y$ with $X,Y$ non-adjacent, $Z$ is a collider ($X\!\rightarrow\!Z\!\leftarrow\!Y$) iff $Z$
 belongs to \emph{no} separating set of $(X,Y)$. Two DAGs are observationally equivalent iff they share the skeleton and
 the v-structures~\cite{verma1990}. Meek's rules R1--R3~\cite{meek1995} then orient every edge whose reversal would
 create a cycle or a new collider. Edges still undirected after that are genuinely unidentifiable.
 \end{theorybox}
 
-\begin{theorybox}{T3 \quad The validity criterion (``support'')}
+\begin{theorybox}{T3: The validity criterion (``support'')}
 Let $\mathcal{E}(G)$ be the set of DAGs represented by the PDAG $G$. For a hypothesis $h$ (e.g.\ ``$X$ directly causes $Y$''),
 \[
-  \operatorname{supp}(h) \;=\; \frac{1}{|\mathcal{E}(G)|}\sum_{D\in\mathcal{E}(G)} \mathbb{1}\!\left[\,h \text{ holds in } D\,\right].
+  \operatorname{supp}(h) \;=\; \frac{1}{|\mathcal{E}(G)|}\sum_{D\in\mathcal{E}(G)} \mathbf{1}\!\left[\,h \text{ holds in } D\,\right].
 \]
 Corr2Cause labels a claim valid iff it is implied by the premise, i.e.\ true in \emph{every} equivalent DAG, so
 $h$ is valid $\Leftrightarrow \operatorname{supp}(h)=1$. A claim with support $0.67$ is \emph{possible} but not \emph{entailed}.
 \end{theorybox}
 
-\begin{theorybox}{T4 \quad Interventions in a Bayesian network}
+\begin{theorybox}{T4: Interventions in a Bayesian network}
 A DAG with conditional tables factorises as $P(v_1,\dots,v_n)=\prod_i P(v_i\mid \mathrm{pa}_i)$. Setting $X{=}x$
 deletes $X$'s own factor (\emph{truncated factorisation}~\cite{pearl2009}):
 $P(\mathbf{v}\mid\doop(X{=}x))=\prod_{i:V_i\neq X}P(v_i\mid\mathrm{pa}_i)\big|_{X=x}$.
@@ -412,7 +375,7 @@ the $X\leftarrow Z\rightarrow Y$ path and therefore overstates the effect (\cref
 % =====================================================================
 \section{Methodology}\label{sec:method}
 
-\subsection{Stage 1: Text to facts \texorpdfstring{\quad\LL}{}}
+\subsection{Stage 1: Text to facts}
 We first fixed a small \textbf{entity schema}. Variables are single capital letters, and
 premise facts take two forms, \code{correlates(X,Y)} and \code{independent(X,Y|S)}. Hypotheses are one of four relations
 (\cref{tab:schema}). One regular expression per sentence template fills this schema. Every fact keeps
@@ -423,19 +386,22 @@ its premise id, and self-loops ($X$ causes $X$) are rejected.
 \caption{The four causal relation types (our entity schema).}
 \label{tab:schema}
 \begin{tabular}{@{}lll@{}}
-\headrow \thead{Relation} & \thead{Template wording} & \thead{Meaning in a DAG} \\
+\toprule
+\thead{Relation} & \thead{Template wording} & \thead{Meaning in a DAG} \\
+\midrule
 direct     & ``X directly causes Y.'' & $X\rightarrow Y$ \\
-\rowcolor{mist} indirect & ``X causes something else which causes Y.'' & $X\rightarrow Z\rightarrow\cdots\rightarrow Y$ \\
+\rowcolor{rowtint} indirect & ``X causes something else which causes Y.'' & $X\rightarrow Z\rightarrow\cdots\rightarrow Y$ \\
 collider   & ``There exists at least one collider of X and Y.'' & $X\rightarrow\cdots\rightarrow Z\leftarrow\cdots\leftarrow Y$ \\
-\rowcolor{mist} confounder & ``There exists at least one confounder of X and Y.'' & $X\leftarrow\cdots\leftarrow Z\rightarrow\cdots\rightarrow Y$ \\
+\rowcolor{rowtint} confounder & ``There exists at least one confounder of X and Y.'' & $X\leftarrow\cdots\leftarrow Z\rightarrow\cdots\rightarrow Y$ \\
+\bottomrule
 \end{tabular}
 \end{table}
 
 \begin{lstlisting}
-HYPOTHESIS_PATTERNS = [   # src/causal_nlp/parsing.py  (one rule per template)
-    (re.compile(rf"^{VAR} directly causes {VAR}\.$"), DIRECT, 1, 2),
-    (re.compile(rf"^{VAR} causes something else which causes {VAR}\.$"), INDIRECT, 1, 2),
-    ...
+HYPOTHESIS_PATTERNS = [  # src/causal_nlp/parsing.py (one rule per template)
+  (re.compile(rf"^{VAR} directly causes {VAR}\.$"), DIRECT, 1, 2),
+  (re.compile(rf"^{VAR} causes something else which causes {VAR}\.$"), INDIRECT, 1, 2),
+  ...
 ]
 def parse_hypothesis(text) -> Hypothesis | None:   # None = "unseen wording"
 \end{lstlisting}
@@ -443,7 +409,7 @@ def parse_hypothesis(text) -> Hypothesis | None:   # None = "unseen wording"
 The parser returns a typed \code{Hypothesis(relation, x, y)} or \code{None}. This tiny interface is the
 contract Phase~2 must honour: a DistilBERT parser only needs to return the same tuple.
 
-\subsection{Stage 2: Facts to a causal graph \texorpdfstring{\quad\RL}{}}
+\subsection{Stage 2: Facts to a causal graph}
 We implemented the three PC steps directly on the extracted facts (T1--T2): build the skeleton, orient
 v-structures, then apply Meek rules R1--R3 until nothing changes. To evaluate a hypothesis we then enumerate the
 equivalent DAGs: flip every undirected edge both ways and keep the combinations with no cycle and no extra
@@ -467,14 +433,17 @@ for robustness: \textbf{no feature uses a variable's name}, so renaming variable
 
 \begin{table}[!htbp]
 \centering\small
-\caption{Engineered features. Group colours follow the pipeline layers.}
+\caption{Engineered features.}
 \label{tab:features}
 \begin{tabularx}{\linewidth}{@{}lcX@{}}
-\headrow \thead{Group} & \thead{\#} & \thead{Features (intuition)} \\
+\toprule
+\thead{Group} & \thead{\#} & \thead{Features (intuition)} \\
+\midrule
 Relation & 4 & one-hot of the claimed relation \hfill \emph{what is being claimed} \\
-\rowcolor{mist} \textcolor{neural}{\textbf{Text facts}} & 8 & no.\ of variables; $X$--$Y$ correlated; adjacent in skeleton; no.\ of separating sets; size of smallest separating set; degree of $X$, $Y$; common neighbours \hfill \emph{read straight off the sentences} \\
-\textcolor{symbolic}{\textbf{PC graph}} & 9 & $X\!\rightarrow\!Y$, $Y\!\rightarrow\!X$, undirected; $X$ ancestor of $Y$ (definite / possible) and reverse; common children; common parents \hfill \emph{read off the PDAG} \\
-\rowcolor{mist} \textcolor{symbolic}{\textbf{Support}} & 2 & $\operatorname{supp}(h)$; number of equivalent DAGs \hfill \emph{how many possible worlds agree} \\
+\rowcolor{rowtint} \textbf{Text facts} & 8 & no.\ of variables; $X$--$Y$ correlated; adjacent in skeleton; no.\ of separating sets; size of smallest separating set; degree of $X$, $Y$; common neighbours \hfill \emph{read straight off the sentences} \\
+\textbf{PC graph} & 9 & $X\!\rightarrow\!Y$, $Y\!\rightarrow\!X$, undirected; $X$ ancestor of $Y$ (definite / possible) and reverse; common children; common parents \hfill \emph{read off the PDAG} \\
+\rowcolor{rowtint} \textbf{Support} & 2 & $\operatorname{supp}(h)$; number of equivalent DAGs \hfill \emph{how many possible worlds agree} \\
+\bottomrule
 \end{tabularx}
 \end{table}
 
@@ -492,10 +461,10 @@ analysed once and cached across its hypotheses.
 We chose the decision tree as the final model. It matches the forest's accuracy, it can be printed and checked by
 hand, and it outputs a probability that the graph stage uses as an edge confidence. All models use seed 42.
 
-\subsection{Stage 5: From triples to answers \texorpdfstring{\quad\GL}{}}
+\subsection{Stage 5: From triples to answers}
 Only claims the classifier marks valid (\code{prob\,$\ge$\,0.5}) reach the graph stage, which is how we implement
 the brief's ``feed only reviewed predictions into the graph stage''.
-\begin{enumerate}[label=\textcolor{causal}{\textbf{\arabic*.}}]
+\begin{enumerate}
   \item \textbf{Acyclic DAG.} Predicted \emph{direct} edges are added from most to least confident; an edge that
         would close a cycle, or is a self-loop, is rejected and logged.
   \item \textbf{Bayesian network.} Corr2Cause provides structure but no measurements, so each node receives
@@ -532,11 +501,11 @@ PC-graph features lifts the tree from 0.24 to 0.83 and the forest to 0.93. Addin
 \begin{figure}[!htbp]
 \centering
 \begin{tikzpicture}[
-  q/.style={draw=symbolic,fill=symbolicT,rounded corners=3pt,font=\sffamily\scriptsize,align=center,inner sep=4pt,line width=0.8pt},
-  yes/.style={fill=symbolic,text=white,rounded corners=3pt,font=\sffamily\scriptsize\bfseries,inner sep=4pt},
-  no/.style={fill=slate!25,text=ink,rounded corners=3pt,font=\sffamily\scriptsize\bfseries,inner sep=4pt},
+  q/.style={draw=symbolic,fill=symbolicT,rounded corners=3pt,font=\scriptsize,align=center,inner sep=4pt,line width=0.8pt},
+  yes/.style={fill=symbolic,text=white,rounded corners=3pt,font=\scriptsize\bfseries,inner sep=4pt},
+  no/.style={fill=slate!25,text=ink,rounded corners=3pt,font=\scriptsize\bfseries,inner sep=4pt},
   e/.style={-{Stealth[length=1.8mm]},ink!70,line width=0.7pt},
-  lab/.style={font=\sffamily\tiny,text=slate,midway,fill=white,inner sep=1pt}]
+  lab/.style={font=\tiny,text=slate,midway,fill=white,inner sep=1pt}]
   \node[q] (r) at (0,0) {support $>$ 0.97 ?};
   \node[no] (n1) at (-3.6,-1.3) {not valid};
   \node[q]  (c) at (2.4,-1.3) {relation = confounder ?};
@@ -576,12 +545,16 @@ F1 = 1.00.
 \centering\small
 \caption{Relation-extraction results, F1 of the valid class (precision / recall below each F1 on test).}
 \label{tab:main}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lccccc@{}}
-\headrow \thead{System} & \thead{dev} & \thead{test} & \thead{refactor.} & \thead{paraphrase} & \thead{test, orig.\ labels} \\
+\toprule
+\thead{System} & \thead{dev} & \thead{test} & \thead{refactor.} & \thead{paraphrase} & \thead{test, orig.\ labels} \\
+\midrule
 TF-IDF + LR (text only) & 0.606 & 0.655 & 0.322 & 0.250 & 0.625 \\
 \multicolumn{1}{r}{\scriptsize\color{slate}P / R} & & \scriptsize\color{slate}0.50 / 0.94 & \scriptsize\color{slate}0.49 / 0.24 & \scriptsize\color{slate}0.27 / 0.23 & \\
-\rowcolor{symbolicT} \textbf{Rules + PC + Decision Tree} & \textbf{1.000} & \textbf{0.997} & \textbf{0.997} & 0.000 & \textbf{0.949} \\
-\rowcolor{symbolicT} \multicolumn{1}{r}{\scriptsize\color{slate}P / R} & & \scriptsize\color{slate}1.00 / 0.99 & \scriptsize\color{slate}1.00 / 0.99 & \scriptsize\color{slate}-- & \\
+\rowcolor{rowtint} \textbf{Rules + PC + Decision Tree} & \textbf{1.000} & \textbf{0.997} & \textbf{0.997} & 0.000 & \textbf{0.949} \\
+\rowcolor{rowtint} \multicolumn{1}{r}{\scriptsize\color{slate}P / R} & & \scriptsize\color{slate}1.00 / 0.99 & \scriptsize\color{slate}1.00 / 0.99 & \scriptsize\color{slate}-- & \\
+\bottomrule
 \end{tabular}
 \end{table}
 
@@ -639,10 +612,13 @@ answer \textbf{97.5\%} correctly (\cref{tab:queries}).
 \caption{Accuracy on known intervention queries ``does $\doop(X)$ change $Y$?''.}
 \label{tab:queries}
 \begin{tabular}{@{}lrr@{}}
-\headrow \thead{Gold answer} & \thead{Queries} & \thead{Accuracy} \\
+\toprule
+\thead{Gold answer} & \thead{Queries} & \thead{Accuracy} \\
+\midrule
 no effect (reverse direction or uncorrelated) & 153 & 1.000 \\
-\rowcolor{mist} effect (direct or indirect cause) & 89 & 0.933 \\
+\rowcolor{rowtint} effect (direct or indirect cause) & 89 & 0.933 \\
 \textbf{all} & \textbf{242} & \textbf{0.975} \\
+\bottomrule
 \end{tabular}
 \end{table}
 
@@ -702,11 +678,11 @@ The code is a small Python package with one module per pipeline stage, mirroring
 
 \begin{examplebox}
 \footnotesize
-\begin{tabularx}{\linewidth}{@{}>{\ttfamily}l@{\hspace{1.2em}}>{\leavevmode\color{slate}\raggedright\arraybackslash}X@{}}
-src/causal\_nlp/parsing.py      & \textcolor{neural}{\textbf{Stage 1}}: text $\rightarrow$ facts / hypothesis triple \\
-src/causal\_nlp/causal\_rules.py & \textcolor{symbolic}{\textbf{Stage 2}}: PC skeleton, v-structures, Meek R1--R3, equivalent DAGs, support \\
-src/causal\_nlp/features.py     & \textcolor{symbolic}{\textbf{Stage 3}}: 23-feature table (cached per premise) \\
-src/causal\_nlp/graph\_stage.py  & \textcolor{causal}{\textbf{Stage 5}}: acyclic DAG, noisy-OR BN, do-queries, edge metrics \\
+\begin{tabularx}{\linewidth}{@{}>{\ttfamily}l@{\hspace{1.2em}}>{\raggedright\arraybackslash}X@{}}
+src/causal\_nlp/parsing.py      & \textbf{Stage 1}: text $\rightarrow$ facts / hypothesis triple \\
+src/causal\_nlp/causal\_rules.py & \textbf{Stage 2}: PC skeleton, v-structures, Meek R1--R3, equivalent DAGs, support \\
+src/causal\_nlp/features.py     & \textbf{Stage 3}: 23-feature table (cached per premise) \\
+src/causal\_nlp/graph\_stage.py  & \textbf{Stage 5}: acyclic DAG, noisy-OR BN, do-queries, edge metrics \\
 src/causal\_nlp/data.py         & loaders, corrected labels, robustness sets (auto-download) \\
 notebooks/01\_phase1\_ml\_pipeline.ipynb & executed Phase~1 deliverable (about 1--2 min on CPU) \\
 tests/test\_pipeline.py         & 14 unit tests (parsing, PC, support, semantics, DAG, BN) \\
@@ -752,10 +728,13 @@ with its Phase~1 counterpart (\cref{tab:phase2}).
 \caption{Planned comparison grid. Same splits, same metrics, same graph stage.}
 \label{tab:phase2}
 \begin{tabularx}{\linewidth}{@{}l>{\raggedright}X>{\raggedright\arraybackslash}X@{}}
-\headrow & \thead{Text only (no reasoning layer)} & \thead{Language layer + reasoning layer} \\
+\toprule
+& \thead{Text only (no reasoning layer)} & \thead{Language layer + reasoning layer} \\
+\midrule
 \textbf{ML (Phase 1)} & TF-IDF + LR & Rules + PC + Decision Tree \\
-\rowcolor{neuralT}\textbf{DL (Phase 2)} & \textbf{2A}: DistilBERT end-to-end classifier, $\pm$ variable-renaming augmentation &
+\rowcolor{rowtint}\textbf{DL (Phase 2)} & \textbf{2A}: DistilBERT end-to-end classifier, $\pm$ variable-renaming augmentation &
   \textbf{2B}: DistilBERT hypothesis parser $\rightarrow$ PC + Decision Tree (hybrid) \\
+\bottomrule
 \end{tabularx}
 \end{table}
 
@@ -779,17 +758,19 @@ between observing and intervening. The remaining weakness is purely linguistic. 
 cannot read the claim, so Phase~2 brings in DistilBERT for exactly that job while the reasoning layer stays as it is.
 
 % =====================================================================
-\section*{Team Contributions}
-\addcontentsline{toc}{section}{Team Contributions}
+\section{Team Contributions}
 \begin{table}[!htbp]
 \centering\small
 \begin{tabularx}{\linewidth}{@{}lX@{}}
-\headrow \thead{Member} & \thead{Primary responsibility} \\
+\toprule
+\thead{Member} & \thead{Primary responsibility} \\
+\midrule
 \MemberA & Project lead: pipeline design, graph stage, Bayesian network and do-queries; pipeline tracer; report (\cref{sec:graph,sec:repro}) \\
-\rowcolor{mist} \MemberB & Data loading, label correction, leakage checks and EDA (\cref{sec:data}) \\
+\rowcolor{rowtint} \MemberB & Data loading, label correction, leakage checks and EDA (\cref{sec:data}) \\
 \MemberC & Feature engineering, classifiers and ablation (\cref{sec:results}) \\
-\rowcolor{mist} \MemberD & Reasoning layer: PC algorithm, Meek rules, equivalent DAGs and support; graph-stage tests (\cref{sec:theory}) \\
+\rowcolor{rowtint} \MemberD & Reasoning layer: PC algorithm, Meek rules, equivalent DAGs and support; graph-stage tests (\cref{sec:theory}) \\
 \MemberE & Language layer: entity schema and regex extractor; robustness sets (\cref{sec:method}) \\
+\bottomrule
 \end{tabularx}
 \end{table}
 
