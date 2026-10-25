@@ -1,5 +1,5 @@
 .venv/
-data/
+data/**/train.csv
 dist/
 __pycache__/
 .ipynb_checkpoints/

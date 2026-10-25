@@ -29,6 +29,9 @@ PARAPHRASE_PATTERNS = [
 
 def _download(repo: str, filename: str, folder: str) -> Path:
     target = DATA_DIR / folder / filename
+    packed = target.with_name(filename + ".gz")  # train.csv is committed gzipped (GitHub 100 MB limit)
+    if not target.exists() and packed.exists():
+        return packed
     if not target.exists():
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(Path(hf_hub_download(repo, filename, repo_type="dataset")).read_bytes())

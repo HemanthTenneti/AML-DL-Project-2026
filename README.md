@@ -36,18 +36,32 @@ uv venv --python 3.11 .venv && uv pip install --python .venv -r requirements.txt
 ```
 
 ## Data
-The code expects this folder (it is **not** in git: the train CSVs are 366 MB each, over GitHub's 100 MB limit):
+**Dataset: Corr2Cause** (Jin et al., ICLR 2024, "Can Large Language Models Infer Causation from Correlation?").
+Each row gives a premise listing the statistical (in)dependence relations among 2-6 variables and a causal
+hypothesis, labelled 1 if the hypothesis follows and 0 if it does not.
+
+| Split | Rows | Source |
+|---|---:|---|
+| train | 205,734 | [zluke/corr2cause-corrected](https://huggingface.co/datasets/zluke/corr2cause-corrected) |
+| dev | 1,076 | same |
+| test | 1,162 | same |
+| paraphrase test | 2,246 | [causal-nlp/corr2cause](https://huggingface.co/datasets/causal-nlp/corr2cause), labels re-mapped to the corrected set |
+| variable-refactor test | 2,246 | same |
+
+Columns: `input` (premise + hypothesis text), `label` (0/1), `num_variables`, `template` (relation type, e.g.
+`has_collider`). The corrected release keeps the official text and fixes 6,943 labels broken by a bug in the
+original generator. Splits are grouped by premise, so no premise appears in two splits.
+
+The Corr2Cause dataset is in `data/`, so a fresh clone runs offline. The two train splits are 366 MB each,
+over GitHub's 100 MB limit, so they are stored as `train.csv.gz` (about 4.4 MB) and read directly by the loader:
 ```
 data/
-  corrected/  train.csv dev.csv test.csv          labels from zluke/corr2cause-corrected (used by default)
-  raw/        train.csv dev.csv test.csv          official causal-nlp/corr2cause (original labels)
+  corrected/  train.csv.gz dev.csv test.csv       labels from zluke/corr2cause-corrected (used by default)
+  raw/        train.csv.gz dev.csv test.csv       official causal-nlp/corr2cause (original labels)
               perturbation_by_paraphrasing_test.csv
               perturbation_by_refactorization_test.csv
 ```
-Two ways to get it:
-1. **Automatic**: run the tests or the notebook with internet access; `src/causal_nlp/data.py` downloads any
-   missing file from Hugging Face into `data/`.
-2. **Offline**: unzip the shared `DLProject_2026_data.zip` in the project root so the `data/` folder sits next to `src/`.
+If a file is missing, `src/causal_nlp/data.py` downloads it from Hugging Face into `data/`. See [data/README.md](data/README.md) for details.
 
 ## Run
 ```bash
