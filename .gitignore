@@ -7,3 +7,4 @@ __pycache__/
 .omc/
 .DS_Store
 .remember/
+models/
