@@ -2,7 +2,7 @@
 
 Semester project: extract cause–effect relations from text, assemble them into a DAG, and answer
 intervention queries with a Bayesian network (pgmpy). Phase 1 = classical ML, Phase 2 = DistilBERT.
-See the [Phase 1 report](report/Phase1_Report.pdf) for the method and results.
+See the [Phase 1 report](report/Phase1_Report.pdf) and the [Phase 2 report](report/Phase2_Report.pdf) for the method and results.
 
 ## Layout
 ```
@@ -12,17 +12,24 @@ src/causal_nlp/
   features.py      Stage 3: feature table (text facts, PC graph, support)
   graph_stage.py   Stage 5: acyclic DAG building, noisy-OR Bayesian network, do-queries
   data.py          Corr2Cause loaders (corrected labels, robustness test sets)
+  dl_common.py     Phase 2: DistilBERT training loop, prediction, save / load
+  dl_end2end.py    Phase 2A: end-to-end DistilBERT classifier + variable-renaming augmentation
+  dl_parser.py     Phase 2B: DistilBERT hypothesis parser (drop-in for the regex parser)
+  paraphrase_grammar.py  Phase 2B: grammar that writes the parser's training sentences
 notebooks/
   01_phase1_ml_pipeline.ipynb   Phase 1 deliverable (executed, with outputs)
-  build_phase1_notebook.py      regenerates the notebook
-tests/test_pipeline.py          unit tests
+  02_phase2_dl_pipeline.ipynb   Phase 2 deliverable (executed, with outputs)
+  build_phase*_notebook.py      regenerate the notebooks
+tests/                          unit tests (Phase 1 + Phase 2)
 results/                        metrics, test triples and report numbers saved for the Phase 2 comparison
 report/
   Phase1_Report.tex / .pdf      Phase 1 report (LaTeX source + compiled PDF)
   Phase1_Presentation.pdf       Phase 1 slides (7 slides + 6 backup slides for the viva)
+  Phase2_Report.tex / .pdf      Phase 2 report (DistilBERT 2A / 2B, ablations, where each reference is used)
   figures/                      figures used by the report
 tools/
   make_report_figures.py        re-runs the pipeline and redraws report/figures/
+  train_phase2.py               trains the three DistilBERT models into models/ (not in git)
   build_visualiser.py           builds docs/pipeline_visualiser.html (step-by-step pipeline tracer)
 docs/
   pipeline_visualiser.html      open in a browser: real examples traced through every stage
@@ -65,8 +72,10 @@ If a file is missing, `src/causal_nlp/data.py` downloads it from Hugging Face in
 
 ## Run
 ```bash
-.venv/bin/python -m pytest -q                                   # 14 unit tests
+.venv/bin/python -m pytest -q                                   # unit tests (Phase 1 + Phase 2)
 .venv/bin/jupyter lab notebooks/01_phase1_ml_pipeline.ipynb     # Phase 1 notebook (~1-2 min on a laptop CPU)
+.venv/bin/python tools/train_phase2.py                          # Phase 2 models (~1 h on a laptop GPU)
+.venv/bin/jupyter lab notebooks/02_phase2_dl_pipeline.ipynb     # Phase 2 notebook (trains any missing model first)
 .venv/bin/python tools/build_visualiser.py                      # rebuild docs/pipeline_visualiser.html
 .venv/bin/python tools/make_report_figures.py                   # redraw report figures (~5 min)
 cd report && pdflatex Phase1_Report.tex && pdflatex Phase1_Report.tex   # rebuild the report PDF
